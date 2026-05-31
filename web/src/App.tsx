@@ -671,49 +671,47 @@ function App() {
               </div>
             </div>
 
-          <div className="todo-box">
-            <div className="todo-header-row">
-              <h3>
-                <span style={{ marginRight: 'var(--space-2)' }}>📋</span>
-                Todo Items
-              </h3>
-              <button
-                type="button"
-                className="todo-toggle-btn"
-                onClick={() => setTodosExpanded((value) => !value)}
-                aria-expanded={todosExpanded}
-                aria-controls="todo-items-content"
-              >
-                {todosExpanded ? "Hide" : "Show"}
-              </button>
-            </div>
-            {todosExpanded && (
-              <div id="todo-items-content">
-                {todos.length === 0 ? (
-                  <p className="subtle">No todo items</p>
-                ) : (
-                  todos.slice(0, 6).map((item) => (
+          {todos.length > 0 && (
+            <div className="todo-box">
+              <div className="todo-header-row">
+                <h3>
+                  <span style={{ marginRight: 'var(--space-2)' }}>📋</span>
+                  Todo Items
+                </h3>
+                <button
+                  type="button"
+                  className="todo-toggle-btn"
+                  onClick={() => setTodosExpanded((value) => !value)}
+                  aria-expanded={todosExpanded}
+                  aria-controls="todo-items-content"
+                >
+                  {todosExpanded ? "Hide" : "Show"}
+                </button>
+              </div>
+              {todosExpanded && (
+                <div id="todo-items-content">
+                  {todos.slice(0, 6).map((item) => (
                     <div key={item.id} className="todo-item">
                       <span className={`todo-status ${item.status}`}>
                         {item.status === 'completed' ? '✓' : '○'}
                       </span>
                       <span>{item.content}</span>
                     </div>
-                  ))
-                )}
-              </div>
-            )}
-          </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="messages" ref={messagesRef}>
             {loadingSessionID === selectedID ? (
-              <div style={{ textAlign: 'center', padding: 'var(--space-8)', color: 'var(--secondary-500)' }}>
+              <div className="empty-state compact">
                 <LoadingIcon size={32} />
                 <p>Loading session...</p>
               </div>
             ) : renderedMessages.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: 'var(--space-8)', color: 'var(--secondary-500)' }}>
-                <ChatIcon size={48} className="icon-empty-state" />
+              <div className="empty-state compact">
+                <ChatIcon size={40} className="icon-empty-state" />
                 <p>No messages yet</p>
                 <p className="subtle">Start a conversation below</p>
               </div>

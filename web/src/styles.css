@@ -729,9 +729,9 @@ button:disabled {
   gap: var(--space-3);
   overflow-y: auto;
   flex: 1 1 auto;
-  min-height: 260px;
+  min-height: 150px;
   max-height: none;
-  margin-top: var(--space-4);
+  margin-top: var(--space-3);
   padding-right: var(--space-2);
   scroll-behavior: smooth;
 }
@@ -739,7 +739,7 @@ button:disabled {
 .detail {
   display: flex;
   flex-direction: column;
-  min-height: min(72dvh, 960px);
+  min-height: min(64dvh, 820px);
 }
 
 .detail-topbar {
@@ -752,6 +752,19 @@ button:disabled {
 
 .detail-header h2 {
   margin-bottom: var(--space-1);
+}
+
+.empty-state {
+  text-align: center;
+  color: var(--secondary-500);
+}
+
+.empty-state.compact {
+  padding: var(--space-4) var(--space-3);
+}
+
+.empty-state.compact .icon-empty-state {
+  margin-bottom: var(--space-2);
 }
 
 .modal-backdrop {
@@ -887,7 +900,7 @@ button:disabled {
 
 /* Composer */
 .composer {
-  margin-top: var(--space-4);
+  margin-top: var(--space-3);
   display: grid;
   grid-template-columns: 1fr auto;
   gap: var(--space-3);
@@ -985,7 +998,7 @@ button:disabled {
   }
   
   .messages {
-    min-height: 45dvh;
+    min-height: 120px;
   }
   
   .composer {
@@ -1048,6 +1061,19 @@ button:disabled {
   }
   
   .panel {
+    padding: var(--space-3);
+  }
+
+  .detail {
+    min-height: auto;
+  }
+
+  .detail-header .subtle {
+    display: none;
+  }
+
+  .todo-box {
+    margin-top: var(--space-2);
     padding: var(--space-3);
   }
 
