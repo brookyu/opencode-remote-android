@@ -170,9 +170,6 @@ function App() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(draftConfig))
     setSettingsNotice({ type: "success", text: t('settings.saved') })
     setRuntimeError(null)
-    if (draftConfig.host && draftConfig.port > 0) {
-      setView("sessions")
-    }
   }
 
   async function testConnection(configToTest: ServerConfig) {
@@ -184,10 +181,7 @@ function App() {
         new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Connection timed out")), 12000))
       ])
       setConnectedVersion(health.version)
-      setConfig(configToTest)
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(configToTest))
-      setView("sessions")
-      setSettingsNotice({ type: "success", text: t('settings.connectedSaved', { version: health.version }) })
+      setSettingsNotice({ type: "success", text: t('settings.testedNotSaved', { version: health.version }) })
     } catch (err) {
       setSettingsNotice({ type: "error", text: t('settings.connectionFailed', { message: (err as Error).message }) })
     } finally {
@@ -418,6 +412,7 @@ function App() {
             <div>
               <h2>{t('settings.title')}</h2>
               <p className="subtle">{hasConfiguredServer ? `${config.host}:${config.port}` : t('settings.hostPlaceholder')}</p>
+              <p className="subtle">{t('settings.draftHint')}</p>
             </div>
           </div>
 
@@ -503,6 +498,14 @@ function App() {
                   {t('settings.test')}
                 </>
               )}
+            </button>
+            <button
+              onClick={() => setView("sessions")}
+              className="btn-secondary"
+              disabled={!hasConfiguredServer}
+            >
+              <FolderIcon size={18} />
+              {t('settings.openSessions')}
             </button>
           </div>
           

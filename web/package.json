@@ -1,7 +1,7 @@
 {
   "name": "opencode-remote-web",
   "private": true,
-  "version": "1.2.2",
+  "version": "1.2.3",
   "type": "module",
   "scripts": {
     "dev": "vite --host",
@@ -10,7 +10,8 @@
     "preview": "vite preview --host",
     "cap:sync": "npx cap sync",
     "cap:add:android": "npx cap add android",
-    "test:ui": "node src/ui-regression.test.mjs"
+    "test:ui": "node src/ui-regression.test.mjs",
+    "test:settings": "node src/settings-regression.test.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.4",

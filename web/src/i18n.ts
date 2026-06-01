@@ -28,6 +28,9 @@ type TranslationKey =
   | 'settings.connectionFailed'
   | 'settings.connectedTo'
   | 'settings.language'
+  | 'settings.draftHint'
+  | 'settings.testedNotSaved'
+  | 'settings.openSessions'
   | 'sessions.title'
   | 'sessions.summary'
   | 'sessions.new'
@@ -88,8 +91,11 @@ const translations: Record<LanguageCode, Record<TranslationKey, string>> = {
     'settings.test': 'Test Connection',
     'settings.testing': 'Testing...',
     'settings.testingConnection': 'Testing connection...',
-    'settings.saved': 'Configuration saved. Press Test to validate connectivity.',
+    'settings.saved': 'Configuration saved. It will be used for Sessions.',
     'settings.connectedSaved': 'Connected to OpenCode {version}. Configuration saved.',
+    'settings.draftHint': 'Edits are drafts until you tap Save. Test checks the fields below without saving or changing page.',
+    'settings.testedNotSaved': 'Connection OK: OpenCode {version}. Nothing was saved yet.',
+    'settings.openSessions': 'Open Sessions',
     'settings.connectionFailed': 'Connection failed: {message}',
     'settings.connectedTo': 'Connected to OpenCode {version}',
     'settings.language': 'Language',
@@ -152,8 +158,11 @@ const translations: Record<LanguageCode, Record<TranslationKey, string>> = {
     'settings.test': 'Test connessione',
     'settings.testing': 'Test...',
     'settings.testingConnection': 'Test connessione...',
-    'settings.saved': 'Configurazione salvata. Premi Test per validare la connessione.',
+    'settings.saved': 'Configurazione salvata. Verrà usata nelle Sessioni.',
     'settings.connectedSaved': 'Connesso a OpenCode {version}. Configurazione salvata.',
+    'settings.draftHint': 'Le modifiche restano in bozza finché tocchi Salva. Test controlla i campi qui sotto senza salvare né cambiare pagina.',
+    'settings.testedNotSaved': 'Connessione OK: OpenCode {version}. Non è stato ancora salvato nulla.',
+    'settings.openSessions': 'Apri sessioni',
     'settings.connectionFailed': 'Connessione fallita: {message}',
     'settings.connectedTo': 'Connesso a OpenCode {version}',
     'settings.language': 'Lingua',
@@ -216,8 +225,11 @@ const translations: Record<LanguageCode, Record<TranslationKey, string>> = {
     'settings.test': '測試連線',
     'settings.testing': '測試中...',
     'settings.testingConnection': '正在測試連線...',
-    'settings.saved': '設定已儲存。請按「測試」驗證連線。',
+    'settings.saved': '設定已儲存，將用於工作階段。',
     'settings.connectedSaved': '已連線至 OpenCode {version}。設定已儲存。',
+    'settings.draftHint': '變更會保持草稿，直到點選儲存。測試只檢查下方欄位，不會儲存或切換頁面。',
+    'settings.testedNotSaved': '連線正常：OpenCode {version}。尚未儲存任何變更。',
+    'settings.openSessions': '開啟工作階段',
     'settings.connectionFailed': '連線失敗：{message}',
     'settings.connectedTo': '已連線至 OpenCode {version}',
     'settings.language': '語言',
