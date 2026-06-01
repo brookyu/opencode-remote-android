@@ -5,9 +5,9 @@ It is designed to make daily usage simple: connect to your server, check active 
 
 ## Screenshots
 
-| Screenshot 1 | Screenshot 2 |
+| Sessions | Detail |
 |---|---|
-| ![](docs/screenshots/1000046910.jpg) | ![](docs/screenshots/1000046911.jpg) |
+| ![](docs/screenshots/sessions.jpg) | ![](docs/screenshots/detail.jpg) |
 
 ## What It Can Do
 
@@ -16,6 +16,7 @@ It is designed to make daily usage simple: connect to your server, check active 
 - open a session and read messages, todo items, and progress
 - send prompts (and `/commands`) directly from the chat input
 - stop running work when necessary
+- use Android-friendly bottom navigation for quick access to Sessions, Detail, Settings, and Help
 - play completion feedback sound when a running session finishes
 - switch UI language between English, Italian, and Traditional Chinese
 
@@ -26,6 +27,12 @@ It is designed to make daily usage simple: connect to your server, check active 
 - networking: OpenCode HTTP API (`/global/health`, `/session/*`, `/command`)
 - CI/CD: GitHub Actions for cloud APK builds
 - i18n: lightweight custom i18n module with English, Italian, and Traditional Chinese
+
+## Download
+
+Download the latest signed Android APK from the GitHub Releases page:
+
+https://github.com/giuliastro/opencode-remote-android/releases/latest
 
 ## OpenCode Server Setup
 
@@ -69,7 +76,7 @@ npx -y opencode-ai serve --hostname 0.0.0.0 --port 4096 --cors http://localhost 
 
 If remote/mobile cannot connect, open TCP 4096 in your OS firewall and network firewall/NAT.
 
-## Run Locally (Web) to test
+## Run Locally (Web)
 
 ```bash
 cd web
@@ -80,25 +87,28 @@ Open the shown URL from your browser (or your phone on the same LAN).
 
 ## Android APK Build (Cloud, no local SDK required)
 
-1. Push to `main` or run workflow manually.
+1. Push to `main` or run the workflow manually.
 2. Open GitHub Actions -> **Build Android APK**.
-3. Download artifact `opencode-remote-debug-apk`.
-4. Install `app-debug.apk` on Android.
+3. Download artifact `opencode-remote-release-apk-v<version>`.
+4. Extract the artifact and install the APK on Android.
 
-To also generate a signed release APK (`app-release-signed.apk`), configure these GitHub repository secrets:
+To generate a signed release APK (`app-release-signed.apk`), configure these GitHub repository secrets:
 
 - `ANDROID_KEYSTORE_BASE64`
 - `ANDROID_KEYSTORE_PASSWORD`
 - `ANDROID_KEY_ALIAS`
 - `ANDROID_KEY_PASSWORD`
 
-When all four secrets are present, the workflow publishes an additional artifact: `opencode-remote-release-apk`.
+When all four secrets are present, the workflow signs the APK and verifies the signature.
+
+When the workflow runs from a `v*` tag, it also publishes a GitHub Release and attaches the signed APK.
 
 The workflow does this automatically:
 
 - builds the React app
 - creates Capacitor Android project
-- compiles debug APK with Gradle
+- compiles a release APK with Gradle
+- signs the APK when signing secrets are configured
 
 ## Manual Android Packaging (Optional)
 
