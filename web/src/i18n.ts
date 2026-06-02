@@ -50,6 +50,7 @@ type TranslationKey =
   | 'detail.composerPlaceholder'
   | 'detail.waiting'
   | 'detail.send'
+  | 'detail.jumpToLatest'
   | 'detail.you'
   | 'detail.opencode'
   | 'todo.title'
@@ -117,6 +118,7 @@ const translations: Record<LanguageCode, Record<TranslationKey, string>> = {
     'detail.composerPlaceholder': 'Type a prompt or command (start with / for slash commands)...',
     'detail.waiting': 'Waiting...',
     'detail.send': 'Send',
+    'detail.jumpToLatest': 'Go to latest',
     'detail.you': '👤 You',
     'detail.opencode': '🤖 OpenCode',
     'todo.title': 'Todo Items',
@@ -183,6 +185,7 @@ const translations: Record<LanguageCode, Record<TranslationKey, string>> = {
     'detail.composerPlaceholder': 'Scrivi un prompt o comando (inizia con / per gli slash command)...',
     'detail.waiting': 'Attesa...',
     'detail.send': 'Invia',
+    'detail.jumpToLatest': 'Vai alla fine',
     'detail.you': '👤 Tu',
     'detail.opencode': '🤖 OpenCode',
     'todo.title': 'Todo',
@@ -249,6 +252,7 @@ const translations: Record<LanguageCode, Record<TranslationKey, string>> = {
     'detail.composerPlaceholder': '輸入提示或命令（以 / 開頭使用斜線命令）...',
     'detail.waiting': '等待中...',
     'detail.send': '傳送',
+    'detail.jumpToLatest': '前往最新',
     'detail.you': '👤 你',
     'detail.opencode': '🤖 OpenCode',
     'todo.title': '待辦事項',

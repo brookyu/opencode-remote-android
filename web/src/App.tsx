@@ -15,6 +15,7 @@ import {
   TestIcon,
   LoadingIcon,
   RefreshIcon,
+  ArrowDownIcon,
   RocketIcon
 } from "./Icons"
 
@@ -120,6 +121,7 @@ function App() {
   const [testingConnection, setTestingConnection] = useState(false)
   const [creatingSession, setCreatingSession] = useState(false)
   const [refreshingSessions, setRefreshingSessions] = useState(false)
+  const [showJumpToLatest, setShowJumpToLatest] = useState(false)
   const [settingsNotice, setSettingsNotice] = useState<{ type: NoticeType; text: string } | null>(null)
   const [runtimeError, setRuntimeError] = useState<string | null>(null)
   const [sessionToDelete, setSessionToDelete] = useState<SessionView | null>(null)
@@ -146,6 +148,10 @@ function App() {
       .filter((message) => message.text)
   }, [messages])
 
+  const messageScrollSignature = useMemo(() => {
+    return renderedMessages.map((message) => `${message.info.id}:${message.text.length}`).join("|")
+  }, [renderedMessages])
+
   const hasConfiguredServer = Boolean(config.host && config.port > 0)
   const isSessionRunning = Boolean(selectedSession && ["busy", "retry"].includes(selectedSession.status))
   const isWorking = busySending || isSessionRunning
@@ -158,6 +164,7 @@ function App() {
     setSelectedID(sessionID)
     setMessages([])
     setTodos([])
+    setShowJumpToLatest(false)
     setRuntimeError(null)
     setView("detail")
     setLoadingSessionID(sessionID)
@@ -244,6 +251,25 @@ function App() {
     } catch (err) {
       setRuntimeError((err as Error).message)
     }
+  }
+
+  function isNearMessageBottom(container: HTMLDivElement) {
+    return container.scrollHeight - container.scrollTop - container.clientHeight < 96
+  }
+
+  function scrollMessagesToBottom(behavior: ScrollBehavior = "smooth") {
+    requestAnimationFrame(() => {
+      const container = messagesRef.current
+      if (!container) return
+      container.scrollTo({ top: container.scrollHeight, behavior })
+      setShowJumpToLatest(false)
+    })
+  }
+
+  function handleMessagesScroll() {
+    const container = messagesRef.current
+    if (!container) return
+    setShowJumpToLatest(!isNearMessageBottom(container))
   }
 
   async function createSession() {
@@ -344,8 +370,10 @@ function App() {
     if (view !== "detail") return
     const container = messagesRef.current
     if (!container) return
-    container.scrollTop = container.scrollHeight
-  }, [view, renderedMessages.length, busySending])
+    if (!showJumpToLatest || isWorking) {
+      scrollMessagesToBottom("auto")
+    }
+  }, [view, messageScrollSignature, isWorking, showJumpToLatest])
 
   useEffect(() => {
     completionAudioRef.current = new Audio("/audio/staplebops-01.aac")
@@ -681,7 +709,8 @@ function App() {
             </div>
           )}
 
-          <div className="messages" ref={messagesRef}>
+          <div className="messages-wrap">
+            <div className="messages" ref={messagesRef} onScroll={handleMessagesScroll}>
             {loadingSessionID === selectedID ? (
               <div className="empty-state compact">
                 <LoadingIcon size={32} />
@@ -712,6 +741,17 @@ function App() {
                   </article>
                 )
               })
+            )}
+            </div>
+            {showJumpToLatest && (
+              <button
+                type="button"
+                className="jump-to-latest btn-secondary"
+                onClick={() => scrollMessagesToBottom()}
+              >
+                <ArrowDownIcon size={16} />
+                {t('detail.jumpToLatest')}
+              </button>
             )}
           </div>
 

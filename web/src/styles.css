@@ -437,6 +437,14 @@ p {
   flex: 0 0 auto;
 }
 
+.messages-wrap {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+}
+
 .messages {
   min-height: 220px;
   flex: 1 1 auto;
@@ -495,6 +503,17 @@ p {
   border-radius: var(--radius-sm);
   background: var(--surface-strong);
   padding: 0.1rem 0.35rem;
+}
+
+.jump-to-latest {
+  position: absolute;
+  right: var(--space-3);
+  bottom: var(--space-3);
+  z-index: var(--z-sticky);
+  min-height: 38px;
+  padding: 0.45rem 0.75rem;
+  box-shadow: var(--shadow-md);
+  background: rgba(255, 255, 255, 0.96);
 }
 
 .composer {
