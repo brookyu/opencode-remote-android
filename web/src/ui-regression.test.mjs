@@ -36,6 +36,12 @@ assert.ok(app.includes('api.loadVcs(config, directory)'), 'project dashboard sho
 assert.ok(app.includes('api.loadFileStatus(config, directory)'), 'project dashboard should use /file/status')
 assert.ok(/\.project-dashboard[\s\S]*?grid-template-columns:\s*repeat\(3/.test(styles), 'project dashboard should render as compact cards on wide screens')
 assert.ok(/@media \(max-width: 780px\)[\s\S]*?\.project-dashboard[\s\S]*?grid-template-columns:\s*1fr/.test(styles), 'project dashboard should stack on mobile')
+assert.ok(app.includes('connectionState'), 'sessions view should track connection state separately from one-off runtime errors')
+assert.ok(app.includes('backgroundFailureCountRef.current += 1'), 'background refresh should count failures before showing persistent offline errors')
+assert.ok(app.includes('backgroundFailureCountRef.current >= 3'), 'transient 1-2 refresh failures should not immediately show the red runtime error')
+assert.ok(app.includes('connection-pending'), 'initial slow connection should show an explicit loading state instead of an empty sessions list')
+assert.ok(app.includes("t('connection.reconnecting')"), 'slow reconnecting state should be translated and shown quietly')
+assert.ok(styles.includes('.connection-status'), 'connection status should have a dedicated non-error visual treatment')
 
 assert.match(icons, /export const RefreshIcon/, 'RefreshIcon should exist for idle refresh UI')
 

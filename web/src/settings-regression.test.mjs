@@ -17,5 +17,13 @@ assert.equal(app.includes("t('settings.openSessions')"), false, 'Settings page m
 assert.ok(app.includes("t('settings.draftHint')"), 'Settings page should explain that edits are drafts until Save')
 assert.equal(i18n.includes("'settings.openSessions'"), false, 'Open Sessions label should not be translated when the action is removed')
 assert.ok(i18n.includes("'settings.testedNotSaved'"), 'Test success should explicitly say it did not save')
+assert.ok(app.includes('function canTestConfig'), 'Settings should have a central testability check for required connection fields')
+assert.ok(app.includes('disabled={testingConnection || !canTestDraft || testAlreadyPassedForDraft}'), 'Test button should be disabled when fields are missing, testing is active, or the unchanged draft already passed')
+assert.ok(app.includes('title={!canTestDraft ? t(\'settings.testNeedsFields\')'), 'Disabled Test button should explain missing required fields')
+assert.ok(app.includes('testAlreadyPassedForDraft ? t(\'settings.testOk\')'), 'Passed unchanged test should be shown as Test OK')
+assert.ok(app.includes('disabled={testingConnection || !hasDraftChanges}'), 'Save should be disabled when there are no draft changes')
+assert.ok(app.includes('connection-help'), 'Settings should explain ready-to-test and unsaved/saved state')
+assert.ok(i18n.includes("'settings.testNeedsFields'"), 'Settings must translate the disabled test reason')
+assert.ok(i18n.includes("'settings.unsavedChanges'"), 'Settings must translate unsaved-change guidance')
 
 console.log('settings regression tests passed')

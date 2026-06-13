@@ -96,6 +96,19 @@ function summarizeJson(value: unknown): string {
   return JSON.stringify(value)
 }
 
+function configKey(config: ServerConfig): string {
+  return JSON.stringify({
+    host: config.host.trim(),
+    port: config.port,
+    username: config.username.trim(),
+    password: config.password
+  })
+}
+
+function canTestConfig(config: ServerConfig): boolean {
+  return Boolean(config.host.trim() && config.port > 0 && config.username.trim())
+}
+
 function App() {
   type NoticeType = "info" | "success" | "error"
 
@@ -143,6 +156,11 @@ function App() {
   const [awaitingAssistantReply, setAwaitingAssistantReply] = useState(false)
   const [settingsNotice, setSettingsNotice] = useState<{ type: NoticeType; text: string } | null>(null)
   const [runtimeError, setRuntimeError] = useState<string | null>(null)
+  const [connectionState, setConnectionState] = useState<"idle" | "connecting" | "connected" | "reconnecting" | "offline">(
+    config.host && config.port > 0 ? "connecting" : "idle"
+  )
+  const [connectionMessage, setConnectionMessage] = useState<string>("")
+  const [lastTestedConfigKey, setLastTestedConfigKey] = useState<string | null>(null)
   const [sessionToDelete, setSessionToDelete] = useState<SessionView | null>(null)
   const messagesRef = useRef<HTMLDivElement | null>(null)
   const messagesEndRef = useRef<HTMLDivElement | null>(null)
@@ -151,6 +169,8 @@ function App() {
   const wasRunningRef = useRef(false)
   const awaitingAssistantBaselineRef = useRef("")
   const sessionsScrollYRef = useRef(0)
+  const backgroundFailureCountRef = useRef(0)
+  const initialSessionLoadRef = useRef(true)
 
   const selectedSession = useMemo(
     () => sessions.find((session) => session.id === selectedID) ?? null,
@@ -196,6 +216,20 @@ function App() {
   }, [renderedMessages])
 
   const hasConfiguredServer = Boolean(config.host && config.port > 0)
+  const draftConfigKey = configKey(draftConfig)
+  const savedConfigKey = configKey(config)
+  const hasDraftChanges = draftConfigKey !== savedConfigKey
+  const canTestDraft = canTestConfig(draftConfig)
+  const testAlreadyPassedForDraft = lastTestedConfigKey === draftConfigKey
+  const connectionStatusText = connectionMessage || (connectionState === "connecting"
+    ? t('connection.connecting')
+    : connectionState === "reconnecting"
+      ? t('connection.reconnecting')
+      : connectionState === "connected"
+        ? t('connection.connected')
+        : connectionState === "offline"
+          ? t('connection.offline')
+          : "")
   const isSessionRunning = Boolean(selectedSession && ["busy", "retry"].includes(selectedSession.status))
   const isWorking = busySending || isSessionRunning
   const showTypingBubble = Boolean(selectedSession) && (isWorking || awaitingAssistantReply)
@@ -229,7 +263,11 @@ function App() {
     setConfig(draftConfig)
     localStorage.setItem(STORAGE_KEY, JSON.stringify(draftConfig))
     setSettingsNotice({ type: "success", text: t('settings.saved') })
+    setConnectionState("connecting")
+    setConnectionMessage(t('connection.connecting'))
     setRuntimeError(null)
+    backgroundFailureCountRef.current = 0
+    initialSessionLoadRef.current = true
   }
 
   async function testConnection(configToTest: ServerConfig) {
@@ -241,6 +279,7 @@ function App() {
         new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Connection timed out")), 12000))
       ])
       setConnectedVersion(health.version)
+      setLastTestedConfigKey(configKey(configToTest))
       setSettingsNotice({ type: "success", text: t('settings.testedNotSaved', { version: health.version }) })
     } catch (err) {
       setSettingsNotice({ type: "error", text: t('settings.connectionFailed', { message: (err as Error).message }) })
@@ -251,7 +290,14 @@ function App() {
 
   async function refreshSessions(silent = false) {
     if (!config.host || config.port <= 0) return
-    if (!silent) setRuntimeError(null)
+    if (!silent) {
+      setRuntimeError(null)
+      setConnectionState(sessions.length === 0 ? "connecting" : "reconnecting")
+      setConnectionMessage(sessions.length === 0 ? t('connection.loadingSessions') : t('connection.refreshing'))
+    } else if (initialSessionLoadRef.current && sessions.length === 0) {
+      setConnectionState("connecting")
+      setConnectionMessage(t('connection.loadingSessions'))
+    }
     try {
       const [items, statuses] = await Promise.all([api.listSessions(config), api.listStatuses(config)])
       const mapped = items
@@ -267,8 +313,32 @@ function App() {
         }))
         .sort((a, b) => b.updated - a.updated)
       setSessions(mapped)
+      backgroundFailureCountRef.current = 0
+      initialSessionLoadRef.current = false
+      setConnectionState("connected")
+      setConnectionMessage(t('connection.connected'))
+      setRuntimeError(null)
     } catch (err) {
-      setRuntimeError((err as Error).message)
+      const message = (err as Error).message
+      if (!silent) {
+        setConnectionState("offline")
+        setConnectionMessage(t('connection.offline'))
+        setRuntimeError(message)
+        return
+      }
+
+      backgroundFailureCountRef.current += 1
+      if (backgroundFailureCountRef.current === 1) {
+        setConnectionState("reconnecting")
+        setConnectionMessage(t('connection.reconnecting'))
+        return
+      }
+
+      setConnectionState("offline")
+      setConnectionMessage(t('connection.offline'))
+      if (backgroundFailureCountRef.current >= 3) {
+        setRuntimeError(message)
+      }
     }
   }
 
@@ -437,7 +507,15 @@ function App() {
   }, [language])
 
   useEffect(() => {
-    if (!config.host || config.port <= 0) return
+    if (!config.host || config.port <= 0) {
+      setConnectionState("idle")
+      setConnectionMessage("")
+      return
+    }
+    setConnectionState("connecting")
+    setConnectionMessage(t('connection.connecting'))
+    backgroundFailureCountRef.current = 0
+    initialSessionLoadRef.current = true
     refreshSessions(true).catch(() => undefined)
     loadCommands().catch(() => undefined)
     const timer = setInterval(() => {
@@ -447,7 +525,7 @@ function App() {
       }
     }, 3500)
     return () => clearInterval(timer)
-  }, [config.host, config.port, config.password, selectedSession?.id])
+  }, [config.host, config.port, config.username, config.password, selectedSession?.id])
 
   useEffect(() => {
     if (!hasConfiguredServer) {
@@ -596,16 +674,17 @@ function App() {
           <div className="actions">
             <button 
               onClick={saveConfig} 
-              disabled={testingConnection}
+              disabled={testingConnection || !hasDraftChanges}
               className="btn-primary"
             >
               <SaveIcon size={18} />
-              {testingConnection ? t('settings.saving') : t('settings.save')}
+              {hasDraftChanges ? t('settings.save') : t('settings.savedButton')}
             </button>
             <button 
               onClick={() => testConnection(draftConfig)} 
               className="btn-secondary"
-              disabled={testingConnection}
+              disabled={testingConnection || !canTestDraft || testAlreadyPassedForDraft}
+              title={!canTestDraft ? t('settings.testNeedsFields') : testAlreadyPassedForDraft ? t('settings.testAlreadyPassed') : undefined}
             >
               {testingConnection ? (
                 <>
@@ -615,7 +694,7 @@ function App() {
               ) : (
                 <>
                   <TestIcon size={18} />
-                  {t('settings.test')}
+                  {testAlreadyPassedForDraft ? t('settings.testOk') : t('settings.test')}
                 </>
               )}
             </button>
@@ -630,7 +709,12 @@ function App() {
             </div>
           )}
           
-          {connectedVersion && (
+          <div className="connection-help">
+            <span>{canTestDraft ? t('settings.readyToTest') : t('settings.testNeedsFields')}</span>
+            <span>{hasDraftChanges ? t('settings.unsavedChanges') : t('settings.noUnsavedChanges')}</span>
+          </div>
+
+          {connectedVersion && testAlreadyPassedForDraft && (
             <div className="notice success fade-in">
               <TestIcon size={16} />
               {t('settings.connectedTo', { version: connectedVersion })}
@@ -647,6 +731,12 @@ function App() {
               <p className="subtle">
                 {t('sessions.summary', { total: sessions.length, active: activeSessions, changed: changedSessions })}
               </p>
+              {connectionStatusText && (
+                <p className={`connection-status ${connectionState}`}>
+                  {['connecting', 'reconnecting'].includes(connectionState) && <LoadingIcon size={14} />}
+                  {connectionStatusText}
+                </p>
+              )}
             </div>
             <div className="inline-actions">
               <button onClick={refreshSessionsWithIndicator} className="btn-secondary" disabled={refreshingSessions}>
@@ -670,11 +760,17 @@ function App() {
           </div>
           
           <div className="session-list">
-            {filteredSessions.length === 0 ? (
+            {filteredSessions.length === 0 && ['connecting', 'reconnecting'].includes(connectionState) ? (
+              <div className="empty-state connection-pending">
+                <LoadingIcon size={40} className="icon-empty-state" />
+                <p>{t('sessions.loadingTitle')}</p>
+                <p className="subtle">{t('sessions.loadingHint')}</p>
+              </div>
+            ) : filteredSessions.length === 0 ? (
               <div className="empty-state">
                 <FolderIcon size={48} className="icon-empty-state" />
                 <p>{t('sessions.emptyTitle')}</p>
-                <p className="subtle">{t('sessions.emptyHint')}</p>
+                <p className="subtle">{connectionState === "offline" ? t('sessions.offlineHint') : t('sessions.emptyHint')}</p>
               </div>
             ) : (
               filteredSessions.map((session) => (

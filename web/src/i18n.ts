@@ -30,6 +30,22 @@ type TranslationKey =
   | 'settings.language'
   | 'settings.draftHint'
   | 'settings.testedNotSaved'
+  | 'settings.savedButton'
+  | 'settings.testOk'
+  | 'settings.testNeedsFields'
+  | 'settings.testAlreadyPassed'
+  | 'settings.readyToTest'
+  | 'settings.unsavedChanges'
+  | 'settings.noUnsavedChanges'
+  | 'connection.connecting'
+  | 'connection.loadingSessions'
+  | 'connection.refreshing'
+  | 'connection.reconnecting'
+  | 'connection.connected'
+  | 'connection.offline'
+  | 'sessions.loadingTitle'
+  | 'sessions.loadingHint'
+  | 'sessions.offlineHint'
   | 'sessions.title'
   | 'sessions.summary'
   | 'sessions.new'
@@ -109,6 +125,19 @@ const translations: Record<LanguageCode, Record<TranslationKey, string>> = {
     'settings.connectedSaved': 'Connected to OpenCode {version}. Configuration saved.',
     'settings.draftHint': 'Edits are drafts until you tap Save. Test checks the fields below without saving or changing page.',
     'settings.testedNotSaved': 'Connection OK: OpenCode {version}. Nothing was saved yet.',
+    'settings.savedButton': 'Saved',
+    'settings.testOk': 'Test OK',
+    'settings.testNeedsFields': 'Enter host, port, and username to test.',
+    'settings.testAlreadyPassed': 'This draft already passed the connection test.',
+    'settings.readyToTest': 'Ready to test these fields.',
+    'settings.unsavedChanges': 'Unsaved changes: tap Save to use them in Sessions.',
+    'settings.noUnsavedChanges': 'Saved settings are active.',
+    'connection.connecting': 'Connecting to OpenCode...',
+    'connection.loadingSessions': 'Connecting and loading sessions...',
+    'connection.refreshing': 'Refreshing sessions...',
+    'connection.reconnecting': 'Connection is slow; retrying quietly...',
+    'connection.connected': 'Connected',
+    'connection.offline': 'OpenCode is not reachable',
     'settings.connectionFailed': 'Connection failed: {message}',
     'settings.connectedTo': 'Connected to OpenCode {version}',
     'settings.language': 'Language',
@@ -120,6 +149,9 @@ const translations: Record<LanguageCode, Record<TranslationKey, string>> = {
     'sessions.searchPlaceholder': 'Search sessions by title or directory...',
     'sessions.emptyTitle': 'No sessions found',
     'sessions.emptyHint': 'Create a new session to get started',
+    'sessions.loadingTitle': 'Connecting to OpenCode',
+    'sessions.loadingHint': 'Loading sessions. This can take a few seconds on mobile or after the server wakes up.',
+    'sessions.offlineHint': 'OpenCode is not reachable yet. Check Settings or try Refresh.',
     'sessions.noFileChanges': 'No file changes',
     'sessions.updated': 'Updated {time}',
     'sessions.open': 'Open',
@@ -190,6 +222,19 @@ const translations: Record<LanguageCode, Record<TranslationKey, string>> = {
     'settings.connectedSaved': 'Connesso a OpenCode {version}. Configurazione salvata.',
     'settings.draftHint': 'Le modifiche restano in bozza finché tocchi Salva. Test controlla i campi qui sotto senza salvare né cambiare pagina.',
     'settings.testedNotSaved': 'Connessione OK: OpenCode {version}. Non è stato ancora salvato nulla.',
+    'settings.savedButton': 'Salvato',
+    'settings.testOk': 'Test OK',
+    'settings.testNeedsFields': 'Inserisci host, porta e username per fare il test.',
+    'settings.testAlreadyPassed': 'Questa bozza ha già superato il test connessione.',
+    'settings.readyToTest': 'Campi pronti per il test.',
+    'settings.unsavedChanges': 'Modifiche non salvate: tocca Salva per usarle nelle Sessioni.',
+    'settings.noUnsavedChanges': 'Le impostazioni salvate sono attive.',
+    'connection.connecting': 'Connessione a OpenCode...',
+    'connection.loadingSessions': 'Connessione e caricamento sessioni...',
+    'connection.refreshing': 'Aggiornamento sessioni...',
+    'connection.reconnecting': 'Connessione lenta; riprovo in silenzio...',
+    'connection.connected': 'Connesso',
+    'connection.offline': 'OpenCode non è raggiungibile',
     'settings.connectionFailed': 'Connessione fallita: {message}',
     'settings.connectedTo': 'Connesso a OpenCode {version}',
     'settings.language': 'Lingua',
@@ -201,6 +246,9 @@ const translations: Record<LanguageCode, Record<TranslationKey, string>> = {
     'sessions.searchPlaceholder': 'Cerca sessioni per titolo o directory...',
     'sessions.emptyTitle': 'Nessuna sessione trovata',
     'sessions.emptyHint': 'Crea una nuova sessione per iniziare',
+    'sessions.loadingTitle': 'Connessione a OpenCode',
+    'sessions.loadingHint': 'Carico le sessioni. Su mobile o dopo il risveglio del server può volerci qualche secondo.',
+    'sessions.offlineHint': 'OpenCode non è ancora raggiungibile. Controlla Impostazioni o riprova con Aggiorna.',
     'sessions.noFileChanges': 'Nessuna modifica ai file',
     'sessions.updated': 'Aggiornata {time}',
     'sessions.open': 'Apri',
@@ -271,6 +319,19 @@ const translations: Record<LanguageCode, Record<TranslationKey, string>> = {
     'settings.connectedSaved': '已連線至 OpenCode {version}。設定已儲存。',
     'settings.draftHint': '變更會保持草稿，直到點選儲存。測試只檢查下方欄位，不會儲存或切換頁面。',
     'settings.testedNotSaved': '連線正常：OpenCode {version}。尚未儲存任何變更。',
+    'settings.savedButton': '已儲存',
+    'settings.testOk': '測試正常',
+    'settings.testNeedsFields': '請輸入主機、連接埠與使用者名稱以測試。',
+    'settings.testAlreadyPassed': '此草稿已通過連線測試。',
+    'settings.readyToTest': '欄位已可測試。',
+    'settings.unsavedChanges': '有未儲存變更：點選儲存後才會用於工作階段。',
+    'settings.noUnsavedChanges': '已儲存的設定正在使用中。',
+    'connection.connecting': '正在連線到 OpenCode...',
+    'connection.loadingSessions': '正在連線並載入工作階段...',
+    'connection.refreshing': '正在重新整理工作階段...',
+    'connection.reconnecting': '連線較慢；正在安靜重試...',
+    'connection.connected': '已連線',
+    'connection.offline': '無法連線到 OpenCode',
     'settings.connectionFailed': '連線失敗：{message}',
     'settings.connectedTo': '已連線至 OpenCode {version}',
     'settings.language': '語言',
@@ -282,6 +343,9 @@ const translations: Record<LanguageCode, Record<TranslationKey, string>> = {
     'sessions.searchPlaceholder': '依標題或目錄搜尋工作階段...',
     'sessions.emptyTitle': '找不到工作階段',
     'sessions.emptyHint': '建立新的工作階段以開始',
+    'sessions.loadingTitle': '正在連線到 OpenCode',
+    'sessions.loadingHint': '正在載入工作階段。行動裝置或伺服器剛喚醒時可能需要幾秒。',
+    'sessions.offlineHint': '尚無法連線到 OpenCode。請檢查設定或重新整理。',
     'sessions.noFileChanges': '沒有檔案變更',
     'sessions.updated': '更新於 {time}',
     'sessions.open': '開啟',

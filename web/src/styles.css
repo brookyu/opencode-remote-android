@@ -312,6 +312,50 @@ p {
   margin-top: var(--space-2);
 }
 
+.connection-help {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.connection-help span {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-subtle);
+  padding: var(--space-2) var(--space-3);
+}
+
+.connection-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.connection-status.connected {
+  color: var(--success);
+}
+
+.connection-status.connecting,
+.connection-status.reconnecting {
+  color: var(--primary);
+}
+
+.connection-status.offline {
+  color: var(--danger);
+}
+
+.connection-pending {
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--surface-subtle);
+}
+
 .toolbar {
   margin-bottom: var(--space-3);
 }
@@ -922,6 +966,7 @@ p {
 
   .form-grid,
   .actions,
+  .connection-help,
   .modal-actions {
     grid-template-columns: 1fr;
   }
