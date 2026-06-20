@@ -3,7 +3,7 @@ import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { api } from "./api"
 import { createTranslator, languageOptions, normalizeLanguage, type LanguageCode } from "./i18n"
-import type { CommandInfo, DiffFile, FileEntry, FileStatusEntry, MessageEnvelope, ModelOption, ModelSelection, ProjectDashboard, ServerConfig, Session, SessionView, TodoItem } from "./types"
+import type { CommandInfo, DiffFile, FileEntry, FileStatusEntry, MessageEnvelope, ModelOption, ModelSelection, PathInfo, ProjectDashboard, ServerConfig, Session, SessionView, TodoItem } from "./types"
 import {
   SettingsIcon,
   FolderIcon,
@@ -106,6 +106,10 @@ function modelSearchText(option: ModelOption): string {
 function normalizeDirectory(value: string): string | undefined {
   const trimmed = value.trim()
   return trimmed.length > 0 ? trimmed : undefined
+}
+
+function isProjectDirectory(pathInfo: PathInfo): boolean {
+  return pathInfo.worktree !== "/"
 }
 
 function toSessionView(session: Session): SessionView {
@@ -611,7 +615,14 @@ function App() {
     if (creatingSession) return
     setCreatingSession(true)
     setRuntimeError(null)
+    setPickerError(null)
     try {
+      if (directory) {
+        const pathInfo = await api.loadPath(config, directory)
+        if (!isProjectDirectory(pathInfo)) {
+          throw new Error(t('sessions.projectDirectoryInvalid', { directory }))
+        }
+      }
       const created = await api.createSession(config, "Mobile session", activeModel, directory)
       const createdView = toSessionView(created)
       if (directory) {
@@ -627,6 +638,7 @@ function App() {
       await loadSelected(created.id, created.directory)
       await refreshSessions()
     } catch (err) {
+      setPickerError((err as Error).message)
       setRuntimeError((err as Error).message)
     } finally {
       setCreatingSession(false)

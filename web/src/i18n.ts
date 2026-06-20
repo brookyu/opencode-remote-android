@@ -65,6 +65,7 @@ type TranslationKey =
   | 'sessions.parentFolder'
   | 'sessions.folderPickerLoading'
   | 'sessions.folderPickerEmpty'
+  | 'sessions.projectDirectoryInvalid'
   | 'sessions.searchPlaceholder'
   | 'sessions.emptyTitle'
   | 'sessions.emptyHint'
@@ -196,6 +197,7 @@ const translations: Record<LanguageCode, Record<TranslationKey, string>> = {
     'sessions.parentFolder': 'Parent folder',
     'sessions.folderPickerLoading': 'Loading folders...',
     'sessions.folderPickerEmpty': 'No folders here.',
+    'sessions.projectDirectoryInvalid': '{directory} is not an OpenCode project folder. Pick a project/worktree folder, or use the server default.',
     'sessions.searchPlaceholder': 'Search sessions by title or directory...',
     'sessions.emptyTitle': 'No sessions found',
     'sessions.emptyHint': 'Create a new session to get started',
@@ -329,7 +331,8 @@ const translations: Record<LanguageCode, Record<TranslationKey, string>> = {
     'sessions.parentFolder': 'Cartella superiore',
     'sessions.folderPickerLoading': 'Caricamento cartelle...',
     'sessions.folderPickerEmpty': 'Nessuna cartella qui.',
-    'sessions.searchPlaceholder': 'Cerca sessioni per titolo o directory...',
+    'sessions.projectDirectoryInvalid': '{directory} non è una cartella progetto OpenCode. Scegli una cartella progetto/worktree oppure usa il default del server.',
+    'sessions.searchPlaceholder': 'Cerca sessioni per titolo o cartella...',
     'sessions.emptyTitle': 'Nessuna sessione trovata',
     'sessions.emptyHint': 'Crea una nuova sessione per iniziare',
     'sessions.loadingTitle': 'Connessione a OpenCode',
@@ -462,6 +465,7 @@ const translations: Record<LanguageCode, Record<TranslationKey, string>> = {
     'sessions.parentFolder': '上一層資料夾',
     'sessions.folderPickerLoading': '正在載入資料夾...',
     'sessions.folderPickerEmpty': '這裡沒有資料夾。',
+    'sessions.projectDirectoryInvalid': '{directory} 不是 OpenCode 專案資料夾。請選擇專案/worktree 資料夾，或使用伺服器預設。',
     'sessions.searchPlaceholder': '依標題或目錄搜尋工作階段...',
     'sessions.emptyTitle': '找不到工作階段',
     'sessions.emptyHint': '建立新的工作階段以開始',
