@@ -3,6 +3,8 @@ package ai.opencode.remote.viewmodel
 import ai.opencode.remote.OpenCodeApp
 import ai.opencode.remote.data.models.*
 import ai.opencode.remote.formatTime
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import java.util.concurrent.ConcurrentHashMap

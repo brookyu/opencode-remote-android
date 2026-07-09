@@ -94,10 +94,14 @@ fun formatLimit(value: Long?): String {
 }
 
 fun extractText(msg: ai.opencode.remote.data.models.MessageEnvelope): String {
-    return msg.parts
+    val text = msg.parts
         .filter { it.type == "text" && !it.text.isNullOrBlank() }
         .joinToString("\n") { it.text!! }
         .trim()
+    if (text.isNotEmpty()) return text
+    val errMsg = msg.info.error?.data?.message
+    if (!errMsg.isNullOrBlank()) return "⚠️ $errMsg"
+    return ""
 }
 
 fun normalizeMessageMarkdown(text: String): String {

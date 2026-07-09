@@ -107,7 +107,20 @@ data class MessageInfo(
     val id: String,
     val role: String,
     @SerialName("sessionID") val sessionID: String,
-    val time: MessageTime
+    val time: MessageTime,
+    val error: MessageError? = null
+)
+
+@Serializable
+data class MessageError(
+    val name: String? = null,
+    val data: MessageErrorData? = null
+)
+
+@Serializable
+data class MessageErrorData(
+    val message: String? = null,
+    val statusCode: Int? = null
 )
 
 @Serializable

@@ -7,8 +7,7 @@ import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
-import retrofit2.converter.kotlinx.serialization.asConverterFactory
-import kotlinx.serialization.json.Json
+import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import okhttp3.MediaType.Companion.toMediaType
 
 class ApiClient(
@@ -16,44 +15,48 @@ class ApiClient(
 ) {
     private var retrofit: Retrofit? = null
     private var apiService: OpenCodeApi? = null
+    private var configuredKey: String? = null
 
     private val json = Json {
         ignoreUnknownKeys = true
         coerceInputValues = true
         isLenient = true
+        explicitNulls = false
+        encodeDefaults = true
     }
 
-    fun configure(host: String, port: Int, username: String, password: String) {
-        authInterceptor.setCredentials(username, password)
-
-        val baseUrl = buildBaseUrl(host, port)
-
+    private val client: OkHttpClient by lazy {
         val loggingInterceptor = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BASIC
         }
-
-        val client = OkHttpClient.Builder()
+        OkHttpClient.Builder()
             .addInterceptor(authInterceptor)
             .addInterceptor(loggingInterceptor)
             .connectTimeout(12, java.util.concurrent.TimeUnit.SECONDS)
             .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
             .writeTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
             .build()
+    }
 
+    fun configure(host: String, port: Int, username: String, password: String) {
+        val key = "$host:$port:$username:$password"
+        if (key == configuredKey && retrofit != null) return
+        authInterceptor.setCredentials(username, password)
+        val baseUrl = buildBaseUrl(host, port)
         retrofit = Retrofit.Builder()
             .baseUrl(baseUrl)
             .client(client)
             .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
             .build()
-
         apiService = retrofit!!.create(OpenCodeApi::class.java)
+        configuredKey = key
     }
 
     private fun buildBaseUrl(host: String, port: Int): String {
         val trimmedHost = host.trim()
         val schemeMatch = Regex("^(https?)://").find(trimmedHost)
         val scheme = schemeMatch?.groupValues?.get(1) ?: "http"
-        val cleanHost = schemeMatch?.let { trimmedHost.substring(it.range) } ?: trimmedHost
+        val cleanHost = schemeMatch?.let { trimmedHost.substring(it.range.last + 1) } ?: trimmedHost
         return "$scheme://$cleanHost:$port/"
     }
 
@@ -120,7 +123,12 @@ class ApiClient(
     suspend fun sendPrompt(config: ServerConfig, sessionId: String, text: String, directory: String? = null, model: ModelSelection? = null, agentId: String? = null) = withContext(Dispatchers.IO) {
         configure(config.host, config.port, config.username, config.password)
         val modelBody = model?.let { ModelRequestBody(providerID = it.providerID, modelID = it.modelID) }
-        api().sendPrompt(sessionId, PromptRequest(parts = listOf(PromptPart(text = text)), model = modelBody, agent = agentId, variant = model?.variant), directory)
+        val variant = model?.variant?.ifBlank { null }
+        val request = PromptRequest(parts = listOf(PromptPart(text = text)), model = modelBody, agent = agentId, variant = variant)
+        val response = api().sendPrompt(sessionId, request, directory)
+        if (!response.isSuccessful) {
+            throw Exception("HTTP ${response.code()}: ${response.errorBody()?.string() ?: response.message()}")
+        }
     }
 
     suspend fun sendCommand(config: ServerConfig, sessionId: String, command: String, arguments: String, directory: String? = null, model: ModelSelection? = null, agentId: String? = null): MessageEnvelope = withContext(Dispatchers.IO) {

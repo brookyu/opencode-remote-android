@@ -6,6 +6,8 @@ import ai.opencode.remote.extractText
 import ai.opencode.remote.modelFromKey
 import ai.opencode.remote.modelKey
 import ai.opencode.remote.sameModel
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 
@@ -64,9 +66,9 @@ data class DetailUiState(
     val activeModelOption: ModelOption?
         get() {
             val sel = selectedModel
-            if (sel != null) {
-                models.find { sameModel(it, sel) }?.let { return it }
-            }
+                if (sel != null) {
+                    models.find { sameModel(ModelSelection(it.providerID, it.modelID, it.variant), sel) }?.let { return it }
+                }
             return models.find { it.isDefault == true } ?: models.firstOrNull()
         }
 
@@ -141,14 +143,16 @@ class DetailViewModel(
                 val statuses = app.apiClient.listStatuses(config, directory.ifBlank { null })
                 val status = statuses[sessionId]
                 val prevStatus = _uiState.value.sessionStatus
-                if (status != null) {
-                    val newStatus = status.type
-                    val wasRunning = prevStatus == "busy" || prevStatus == "retry"
-                    val isNowIdle = newStatus != "busy" && newStatus != "retry"
-                    if (wasRunning && isNowIdle && shouldPlayCompletion) {
+                val newStatus = status?.type ?: "idle"
+                val wasRunning = prevStatus == "busy" || prevStatus == "retry"
+                val isNowIdle = newStatus != "busy" && newStatus != "retry"
+                if (wasRunning && isNowIdle) {
+                    if (shouldPlayCompletion) {
                         shouldPlayCompletion = false
                         app.playCompletionSound()
                     }
+                    _uiState.value = _uiState.value.copy(sessionStatus = newStatus, isWaitingForReply = false)
+                } else {
                     _uiState.value = _uiState.value.copy(sessionStatus = newStatus)
                 }
             } catch (e: Exception) { }
@@ -244,7 +248,7 @@ class DetailViewModel(
                 val savedKey = app.preferences.modelKey.first()
                 val savedModel = modelFromKey(savedKey)
 
-                val modelToUse = if (savedModel != null && models.any { sameModel(it, savedModel) }) {
+                val modelToUse = if (savedModel != null && models.any { sameModel(ModelSelection(it.providerID, it.modelID, it.variant), savedModel) }) {
                     savedKey
                 } else {
                     val fallback = models.find { it.isDefault == true } ?: models.firstOrNull()
@@ -267,10 +271,12 @@ class DetailViewModel(
 
     private fun checkAssistantReply(messages: List<MessageEnvelope>) {
         if (!_uiState.value.isWaitingForReply) return
-        val signature = messages
-            .filter { it.info.role != "user" }
-            .joinToString("|") { "${it.info.id}:${extractText(it).length}" }
-        if (signature.isNotBlank() && signature != awaitingBaseline) {
+        val baselineIds = awaitingBaseline.split("|").mapNotNull { it.substringBefore(":").takeIf { id -> id.isNotBlank() } }.toSet()
+        val assistantMessages = messages.filter { it.info.role != "user" }
+        val hasNewCompleted = assistantMessages.any { msg ->
+            msg.info.id !in baselineIds && msg.info.time.completed != null
+        }
+        if (hasNewCompleted) {
             _uiState.value = _uiState.value.copy(isWaitingForReply = false)
             if (shouldPlayCompletion) {
                 shouldPlayCompletion = false
@@ -343,6 +349,7 @@ class DetailViewModel(
                 app.apiClient.sendPrompt(config, sessionId, text, dir, state.activeModel, state.activeAgent?.id)
                 loadSessionData(sessionId, state.sessionDirectory)
                 _uiState.value = _uiState.value.copy(
+                    isSending = false,
                     optimisticMessages = _uiState.value.optimisticMessages.filter { it.info.id != optimisticMsg.info.id }
                 )
             } catch (e: Exception) {
@@ -411,6 +418,7 @@ class DetailViewModel(
                 app.apiClient.sendCommand(config, sessionId, command, args, dir, state.activeModel, state.activeAgent?.id)
                 loadSessionData(sessionId, state.sessionDirectory)
                 _uiState.value = _uiState.value.copy(
+                    isSending = false,
                     optimisticMessages = _uiState.value.optimisticMessages.filter { it.info.id != optimisticMsg.info.id }
                 )
             } catch (e: Exception) {
@@ -429,13 +437,13 @@ class DetailViewModel(
     fun abortSession() {
         val state = _uiState.value
         val sessionId = state.sessionId ?: return
+        shouldPlayCompletion = false
+        _uiState.value = _uiState.value.copy(isWaitingForReply = false, isSending = false)
         viewModelScope.launch {
             try {
                 val config = getConfig()
                 val dir = state.sessionDirectory.ifBlank { null }
                 app.apiClient.abortSession(config, sessionId, dir)
-                shouldPlayCompletion = false
-                _uiState.value = _uiState.value.copy(isWaitingForReply = false)
                 loadSessionData(sessionId, state.sessionDirectory)
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(error = e.message)

@@ -55,7 +55,7 @@ fun HelpScreen(
                 1 -> InfoContent(stringResource(R.string.help_server_text))
                 2 -> InfoContent(stringResource(R.string.help_network_text))
                 3 -> InfoContent(stringResource(R.string.help_troubleshooting_text))
-                4 -> CommandsTab(state, onCommandFilterChange)
+                4 -> CommandsTab(state, onCommandFilterChange, onCommandSearchChange)
             }
         }
     }
@@ -79,7 +79,8 @@ private fun InfoContent(text: String) {
 @Composable
 private fun CommandsTab(
     state: SessionsUiState,
-    onCommandFilterChange: (String) -> Unit
+    onCommandFilterChange: (String) -> Unit,
+    onCommandSearchChange: (String) -> Unit
 ) {
     Column(
         modifier = Modifier.fillMaxSize()
@@ -163,9 +164,10 @@ private fun CommandCard(cmd: CommandInfo) {
                     AssistChip(onClick = {}, label = { Text(stringResource(R.string.help_filter_skills)) })
                 }
             }
-            if (cmd.description.isNotBlank()) {
+            val description = cmd.description
+            if (!description.isNullOrBlank()) {
                 Text(
-                    cmd.description,
+                    description!!,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 4.dp)

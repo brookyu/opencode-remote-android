@@ -1,5 +1,6 @@
 package ai.opencode.remote.viewmodel
 
+import ai.opencode.remote.I18n
 import ai.opencode.remote.Language
 import ai.opencode.remote.OpenCodeApp
 import ai.opencode.remote.ThemePref
