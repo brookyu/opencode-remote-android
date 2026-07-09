@@ -75,8 +75,12 @@ fun modelFromKey(value: String?): ModelSelection? {
     return ModelSelection(providerID = parts[0], modelID = parts[1], variant = if (parts.size > 2 && parts[2].isNotBlank()) parts[2] else null)
 }
 
+fun normalizeModelKey(str: String): String {
+    return str.lowercase().replace(Regex("[^a-z0-9]"), "")
+}
+
 fun sameModel(a: ModelSelection?, b: ModelSelection?): Boolean {
-    return a != null && b != null && a.providerID == b.providerID && a.modelID == b.modelID && (a.variant ?: "") == (b.variant ?: "")
+    return a != null && b != null && a.providerID.lowercase() == b.providerID.lowercase() && normalizeModelKey(a.modelID) == normalizeModelKey(b.modelID) && (a.variant ?: "").lowercase() == (b.variant ?: "").lowercase()
 }
 
 fun formatTime(epoch: Long): String {

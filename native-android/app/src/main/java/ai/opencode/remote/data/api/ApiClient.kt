@@ -1,6 +1,7 @@
 package ai.opencode.remote.data.api
 
 import ai.opencode.remote.data.models.*
+import ai.opencode.remote.normalizeModelKey
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -168,7 +169,7 @@ class ApiClient(
                     outputLimit = model.limit?.output,
                     tools = model.capabilities?.toolcall == true || model.capabilities?.tools == true,
                     attachments = model.capabilities?.attachment == true,
-                    isDefault = defaultModel == modelId
+                    isDefault = defaultModel != null && (defaultModel == modelId || normalizeModelKey(defaultModel) == normalizeModelKey(modelId) || normalizeModelKey(defaultModel) == normalizeModelKey(model.name ?: ""))
                 )
                 val variantIds = model.variants?.keys?.toList() ?: emptyList()
                 listOf(base) + variantIds.map { v ->

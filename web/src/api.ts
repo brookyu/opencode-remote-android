@@ -188,6 +188,10 @@ function toAgentOption(agent: AgentResponse[number]): AgentOption {
   }
 }
 
+function normalizeModelKey(str: string): string {
+  return str.toLowerCase().replace(/[^a-z0-9]/g, "")
+}
+
 function toModelBody(model?: ModelSelection) {
   if (!model) return undefined
   return { providerID: model.providerID, modelID: model.modelID }
@@ -260,7 +264,13 @@ export const api = {
           outputLimit: model.limit?.output,
           tools: Boolean(model.capabilities?.toolcall || model.capabilities?.tools),
           attachments: Boolean(model.capabilities?.attachment),
-          isDefault: defaultModel === modelID
+          isDefault: Boolean(
+            defaultModel && (
+              defaultModel === modelID ||
+              normalizeModelKey(defaultModel) === normalizeModelKey(modelID) ||
+              normalizeModelKey(defaultModel) === normalizeModelKey(model.name || "")
+            )
+          )
         }
         const variantIDs = Object.keys(model.variants ?? {})
         return [

@@ -96,8 +96,18 @@ function modelFromKey(value: string | null): ModelSelection | null {
   return { providerID, modelID, variant: variant || undefined }
 }
 
+function normalizeModelKey(str: string): string {
+  return str.toLowerCase().replace(/[^a-z0-9]/g, "")
+}
+
 function sameModel(a: ModelSelection | null | undefined, b: ModelSelection | null | undefined): boolean {
-  return Boolean(a && b && a.providerID === b.providerID && a.modelID === b.modelID && (a.variant ?? "") === (b.variant ?? ""))
+  return Boolean(
+    a &&
+    b &&
+    a.providerID.toLowerCase() === b.providerID.toLowerCase() &&
+    normalizeModelKey(a.modelID) === normalizeModelKey(b.modelID) &&
+    (a.variant ?? "").toLowerCase() === (b.variant ?? "").toLowerCase()
+  )
 }
 
 function modelSearchText(option: ModelOption): string {
