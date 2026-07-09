@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">OpenCode Remote</string>
+
+    <!-- Nav -->
+    <string name="nav_sessions">工作階段</string>
+    <string name="nav_detail">詳情</string>
+    <string name="nav_settings">設定</string>
+    <string name="nav_help">說明</string>
+
+    <!-- Settings -->
+    <string name="settings_title">設定</string>
+    <string name="settings_host">主機</string>
+    <string name="settings_port">連接埠</string>
+    <string name="settings_username">使用者名稱</string>
+    <string name="settings_password">密碼</string>
+    <string name="settings_language">語言</string>
+    <string name="settings_theme">主題</string>
+    <string name="settings_theme_system">系統</string>
+    <string name="settings_theme_light">淺色</string>
+    <string name="settings_theme_dark">深色</string>
+    <string name="settings_save">儲存</string>
+    <string name="settings_test">測試連線</string>
+    <string name="settings_saving">儲存中…</string>
+    <string name="settings_testing">測試中…</string>
+    <string name="settings_saved">設定已儲存</string>
+    <string name="settings_testingConnection">正在測試連線…</string>
+    <string name="settings_testedNotSaved">已連線 (v{version}) — 請記得儲存</string>
+    <string name="settings_connectionFailed">連線失敗：{message}</string>
+    <string name="settings_testNeedsFields">請先填寫主機、連接埠和使用者名稱</string>
+    <string name="settings_host_hint">https://example.com</string>
+    <string name="settings_port_hint">4096</string>
+    <string name="settings_username_hint">opencode</string>
+    <string name="settings_password_hint">密碼</string>
+
+    <!-- Sessions -->
+    <string name="sessions_title">工作階段</string>
+    <string name="sessions_search">搜尋工作階段…</string>
+    <string name="sessions_refresh">重新整理</string>
+    <string name="sessions_new">新增工作階段</string>
+    <string name="sessions_total">{total} 個總計</string>
+    <string name="sessions_active">{active} 個進行中</string>
+    <string name="sessions_changed">{changed} 個有變更</string>
+    <string name="sessions_empty">尚無工作階段</string>
+    <string name="sessions_empty_hint">建立新工作階段以開始</string>
+    <string name="sessions_delete_title">刪除工作階段？</string>
+    <string name="sessions_delete_message">確定要刪除「{title}」嗎？</string>
+    <string name="sessions_delete_confirm">刪除</string>
+    <string name="sessions_delete_cancel">取消</string>
+    <string name="sessions_status_idle">閒置</string>
+    <string name="sessions_status_busy">忙碌</string>
+    <string name="sessions_status_retry">重試中</string>
+    <string name="sessions_status_waiting">等待中</string>
+    <string name="sessions_status_error">錯誤</string>
+    <string name="sessions_status_aborted">已中斷</string>
+    <string name="sessions_status_finished">已完成</string>
+    <string name="sessions_connection_connecting">連線中…</string>
+    <string name="sessions_connection_connected">已連線</string>
+    <string name="sessions_connection_reconnecting">重新連線中…</string>
+    <string name="sessions_connection_offline">離線</string>
+
+    <!-- New session picker -->
+    <string name="picker_title">選擇專案資料夾</string>
+    <string name="picker_current">目前：%1$s</string>
+    <string name="picker_select">選擇此資料夾</string>
+    <string name="picker_cancel">取消</string>
+    <string name="picker_loading">載入中…</string>
+    <string name="picker_empty">無子資料夾</string>
+    <string name="picker_parent">↑ 上層資料夾</string>
+    <string name="picker_error">錯誤：%1$s</string>
+
+    <!-- Detail -->
+    <string name="detail_back">返回</string>
+    <string name="detail_abort">中止</string>
+    <string name="detail_send">傳送</string>
+    <string name="detail_stop">停止</string>
+    <string name="detail_composer_hint">輸入訊息或 /指令…</string>
+    <string name="detail_todo">待辦</string>
+    <string name="detail_no_messages">尚無訊息。傳送提示以開始。</string>
+    <string name="detail_ai_chip">AI</string>
+    <string name="detail_details_chip">詳情</string>
+    <string name="detail_typing">思考中…</string>
+
+    <!-- AI sheet -->
+    <string name="ai_sheet_title">AI 設定</string>
+    <string name="ai_sheet_agent">代理人</string>
+    <string name="ai_sheet_model">模型</string>
+    <string name="ai_sheet_search_models">搜尋模型…</string>
+    <string name="ai_sheet_no_models">無可用模型</string>
+    <string name="ai_sheet_no_agents">無可用代理人</string>
+    <string name="ai_sheet_tools">工具</string>
+    <string name="ai_sheet_attachments">附件</string>
+    <string name="ai_sheet_context">上下文</string>
+    <string name="ai_sheet_output">輸出</string>
+
+    <!-- Details sheet -->
+    <string name="details_sheet_title">工作階段詳情</string>
+    <string name="details_project">專案</string>
+    <string name="details_vcs">版本控制</string>
+    <string name="details_files">檔案</string>
+    <string name="details_diff">差異</string>
+    <string name="details_branch">分支</string>
+    <string name="details_no_project">無專案資訊</string>
+    <string name="details_no_vcs">非 Git 儲存庫</string>
+    <string name="details_no_files">無檔案變更</string>
+    <string name="details_no_diff">無差異資料</string>
+
+    <!-- Help -->
+    <string name="help_title">說明</string>
+    <string name="help_tab_overview">概覽</string>
+    <string name="help_tab_server">伺服器</string>
+    <string name="help_tab_network">網路</string>
+    <string name="help_tab_troubleshooting">疑難排解</string>
+    <string name="help_tab_commands">指令</string>
+    <string name="help_filter_all">全部</string>
+    <string name="help_filter_skills">技能</string>
+    <string name="help_filter_placeholder">篩選指令…</string>
+    <string name="help_no_commands">無可用指令</string>
+
+    <string name="help_overview_text">OpenCode Remote 讓您從 Android 裝置監控並互動伺服器上的 OpenCode 工作階段。\n\n• 瀏覽所有工作階段\n• 建立與刪除工作階段\n• 傳送提示與斜線指令\n• 檢視訊息、待辦與檔案差異\n• 選擇 AI 代理人與模型\n\n請在設定中配置伺服器連線以開始使用。</string>
+    <string name="help_server_text">OpenCode 伺服器需求：\n\n• OpenCode 以伺服器模式執行\n• HTTP API 可從裝置存取\n• 已設定 Basic Auth 驗證\n\n預設連接埠：4096\n使用 HTTPS 時，請在主機欄位包含通訊協定。</string>
+    <string name="help_network_text">連線提示：\n\n• 本地伺服器請使用區域網路 IP\n• 遠端伺服器請使用網域名稱或公開 IP\n• 遠端連線建議使用 HTTPS\n• 反向代理後方請使用連接埠 443\n• 本地開發可使用明文 HTTP</string>
+    <string name="help_troubleshooting_text">常見問題：\n\n• 連線失敗：檢查主機、連接埠與憑證\n• 無工作階段：確認 OpenCode 正在執行\n• 訊息未載入：檢查伺服器日誌\n• 逾時：增加伺服器逾時或檢查網路\n• SSL 錯誤：確認憑證有效或本地使用 HTTP</string>
+
+    <!-- Todo -->
+    <string name="todo_pending">待處理</string>
+    <string name="todo_in_progress">進行中</string>
+    <string name="todo_completed">已完成</string>
+    <string name="todo_cancelled">已取消</string>
+
+    <!-- Generic -->
+    <string name="loading">載入中…</string>
+    <string name="error">錯誤</string>
+    <string name="retry">重試</string>
+    <string name="close">關閉</string>
+    <string name="ok">確定</string>
+    <string name="cancel">取消</string>
+</resources>

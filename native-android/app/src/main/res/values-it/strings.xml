@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">OpenCode Remote</string>
+
+    <!-- Nav -->
+    <string name="nav_sessions">Sessioni</string>
+    <string name="nav_detail">Dettaglio</string>
+    <string name="nav_settings">Impostazioni</string>
+    <string name="nav_help">Aiuto</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Impostazioni</string>
+    <string name="settings_host">Host</string>
+    <string name="settings_port">Porta</string>
+    <string name="settings_username">Nome utente</string>
+    <string name="settings_password">Password</string>
+    <string name="settings_language">Lingua</string>
+    <string name="settings_theme">Tema</string>
+    <string name="settings_theme_system">Sistema</string>
+    <string name="settings_theme_light">Chiaro</string>
+    <string name="settings_theme_dark">Scuro</string>
+    <string name="settings_save">Salva</string>
+    <string name="settings_test">Test connessione</string>
+    <string name="settings_saving">Salvataggio…</string>
+    <string name="settings_testing">Test…</string>
+    <string name="settings_saved">Impostazioni salvate</string>
+    <string name="settings_testingConnection">Test connessione…</string>
+    <string name="settings_testedNotSaved">Connesso (v{version}) — ricordati di salvare</string>
+    <string name="settings_connectionFailed">Connessione fallita: {message}</string>
+    <string name="settings_testNeedsFields">Compila host, porta e nome utente</string>
+    <string name="settings_host_hint">https://example.com</string>
+    <string name="settings_port_hint">4096</string>
+    <string name="settings_username_hint">opencode</string>
+    <string name="settings_password_hint">password</string>
+
+    <!-- Sessions -->
+    <string name="sessions_title">Sessioni</string>
+    <string name="sessions_search">Cerca sessioni…</string>
+    <string name="sessions_refresh">Aggiorna</string>
+    <string name="sessions_new">Nuova sessione</string>
+    <string name="sessions_total">{total} totali</string>
+    <string name="sessions_active">{active} attive</string>
+    <string name="sessions_changed">{changed} modificate</string>
+    <string name="sessions_empty">Nessuna sessione</string>
+    <string name="sessions_empty_hint">Crea una nuova sessione per iniziare</string>
+    <string name="sessions_delete_title">Eliminare sessione?</string>
+    <string name="sessions_delete_message">Sei sicuro di voler eliminare "{title}"?</string>
+    <string name="sessions_delete_confirm">Elimina</string>
+    <string name="sessions_delete_cancel">Annulla</string>
+    <string name="sessions_status_idle">Inattivo</string>
+    <string name="sessions_status_busy">Occupato</string>
+    <string name="sessions_status_retry">Riprova</string>
+    <string name="sessions_status_waiting">In attesa</string>
+    <string name="sessions_status_error">Errore</string>
+    <string name="sessions_status_aborted">Interrotto</string>
+    <string name="sessions_status_finished">Completato</string>
+    <string name="sessions_connection_connecting">Connessione…</string>
+    <string name="sessions_connection_connected">Connesso</string>
+    <string name="sessions_connection_reconnecting">Riconnessione…</string>
+    <string name="sessions_connection_offline">Offline</string>
+
+    <!-- New session picker -->
+    <string name="picker_title">Seleziona cartella progetto</string>
+    <string name="picker_current">Corrente: %1$s</string>
+    <string name="picker_select">Seleziona questa cartella</string>
+    <string name="picker_cancel">Annulla</string>
+    <string name="picker_loading">Caricamento…</string>
+    <string name="picker_empty">Nessuna sottocartella</string>
+    <string name="picker_parent">↑ Cartella superiore</string>
+    <string name="picker_error">Errore: %1$s</string>
+
+    <!-- Detail -->
+    <string name="detail_back">Indietro</string>
+    <string name="detail_abort">Interrompi</string>
+    <string name="detail_send">Invia</string>
+    <string name="detail_stop">Stop</string>
+    <string name="detail_composer_hint">Scrivi un messaggio o /comando…</string>
+    <string name="detail_todo">Da fare</string>
+    <string name="detail_no_messages">Nessun messaggio. Invia un prompt per iniziare.</string>
+    <string name="detail_ai_chip">AI</string>
+    <string name="detail_details_chip">Dettagli</string>
+    <string name="detail_typing">Pensando…</string>
+
+    <!-- AI sheet -->
+    <string name="ai_sheet_title">Configurazione AI</string>
+    <string name="ai_sheet_agent">Agente</string>
+    <string name="ai_sheet_model">Modello</string>
+    <string name="ai_sheet_search_models">Cerca modelli…</string>
+    <string name="ai_sheet_no_models">Nessun modello disponibile</string>
+    <string name="ai_sheet_no_agents">Nessun agente disponibile</string>
+    <string name="ai_sheet_tools">Strumenti</string>
+    <string name="ai_sheet_attachments">Allegati</string>
+    <string name="ai_sheet_context">Contesto</string>
+    <string name="ai_sheet_output">Output</string>
+
+    <!-- Details sheet -->
+    <string name="details_sheet_title">Dettagli sessione</string>
+    <string name="details_project">Progetto</string>
+    <string name="details_vcs">Controllo versione</string>
+    <string name="details_files">File</string>
+    <string name="details_diff">Diff</string>
+    <string name="details_branch">Branch</string>
+    <string name="details_no_project">Nessuna info progetto</string>
+    <string name="details_no_vcs">Non è un repository git</string>
+    <string name="details_no_files">Nessun file modificato</string>
+    <string name="details_no_diff">Nessun diff disponibile</string>
+
+    <!-- Help -->
+    <string name="help_title">Aiuto</string>
+    <string name="help_tab_overview">Panoramica</string>
+    <string name="help_tab_server">Server</string>
+    <string name="help_tab_network">Rete</string>
+    <string name="help_tab_troubleshooting">Risoluzione</string>
+    <string name="help_tab_commands">Comandi</string>
+    <string name="help_filter_all">Tutti</string>
+    <string name="help_filter_skills">Skill</string>
+    <string name="help_filter_placeholder">Filtra comandi…</string>
+    <string name="help_no_commands">Nessun comando disponibile</string>
+
+    <string name="help_overview_text">OpenCode Remote ti permette di monitorare e interagire con le sessioni OpenCode sul tuo server dal dispositivo Android.\n\n• Sfoglia tutte le sessioni\n• Crea ed elimina sessioni\n• Invia prompt e comandi\n• Visualizza messaggi, todo e diff\n• Seleziona agenti e modelli AI\n\nConfigura la connessione server in Impostazioni.</string>
+    <string name="help_server_text">Requisiti server OpenCode:\n\n• OpenCode in modalità server\n• API HTTP accessibile dal dispositivo\n• Credenziali Basic Auth configurate\n\nPorta predefinita: 4096\nPer HTTPS, includi lo schema nell\'host.</string>
+    <string name="help_network_text">Suggerimenti di connessione:\n\n• Per server locali, usa l\'IP LAN\n• Per server remoti, usa dominio o IP pubblico\n• HTTPS consigliato per connessioni remote\n• Dietro reverse proxy, usa porta 443\n• HTTP in chiaro consentito per sviluppo locale</string>
+    <string name="help_troubleshooting_text">Problemi comuni:\n\n• Connessione fallita: verifica host, porta, credenziali\n• Nessuna sessione: assicurati che OpenCode sia in esecuzione\n• Messaggi non caricano: controlla i log del server\n• Timeout: aumenta il timeout del server\n• Errori SSL: verifica il certificato o usa HTTP localmente</string>
+
+    <!-- Todo -->
+    <string name="todo_pending">In sospeso</string>
+    <string name="todo_in_progress">In corso</string>
+    <string name="todo_completed">Completato</string>
+    <string name="todo_cancelled">Annullato</string>
+
+    <!-- Generic -->
+    <string name="loading">Caricamento…</string>
+    <string name="error">Errore</string>
+    <string name="retry">Riprova</string>
+    <string name="close">Chiudi</string>
+    <string name="ok">OK</string>
+    <string name="cancel">Annulla</string>
+</resources>
