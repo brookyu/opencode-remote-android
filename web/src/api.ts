@@ -289,6 +289,16 @@ export const api = {
     return request<Session>(config, withDirectory(`/session/${id}`, directory), { method: "PATCH", body: { title } })
   },
 
+  updateSession(config: ServerConfig, id: string, body: { title?: string; model?: ModelSelection }, directory?: string) {
+    return request<Session>(config, withDirectory(`/session/${id}`, directory), {
+      method: "PATCH",
+      body: {
+        title: body.title,
+        model: body.model ? toCreateSessionModel(body.model) : undefined
+      }
+    })
+  },
+
   deleteSession(config: ServerConfig, id: string, directory?: string) {
     return request<boolean>(config, withDirectory(`/session/${id}`, directory), { method: "DELETE" })
   },

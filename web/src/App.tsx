@@ -571,9 +571,20 @@ function App() {
     return new Map(results)
   }
 
-  function changeModel(nextKey: string) {
+  async function changeModel(nextKey: string) {
     setSelectedModelKey(nextKey)
     localStorage.setItem(MODEL_STORAGE_KEY, nextKey)
+    if (selectedSession) {
+      const parsed = modelFromKey(nextKey)
+      if (parsed) {
+        try {
+          await api.updateSession(config, selectedSession.id, { model: parsed }, selectedSession.directory)
+          await refreshSessions(true)
+        } catch (err) {
+          console.error("Failed to update session model on server:", err)
+        }
+      }
+    }
   }
 
   function changeAgent(nextAgentID: string) {
