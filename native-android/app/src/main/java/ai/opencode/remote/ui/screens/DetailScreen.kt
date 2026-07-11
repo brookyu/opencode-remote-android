@@ -78,11 +78,11 @@ fun DetailScreen(
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
 
-    LaunchedEffect(state.renderedMessages.size, state.showTypingBubble) {
+    LaunchedEffect(state.renderedMessages.size, state.showTypingBubble, WindowInsets.isImeVisible) {
         if (state.renderedMessages.isNotEmpty()) {
             val target = state.renderedMessages.size - 1
-            if (state.showTypingBubble) target + 1 else target
-            listState.animateScrollToItem(target)
+            val finalTarget = if (state.showTypingBubble) target + 1 else target
+            listState.animateScrollToItem(finalTarget)
         }
     }
 
