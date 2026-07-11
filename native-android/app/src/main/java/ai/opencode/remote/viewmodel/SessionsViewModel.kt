@@ -118,8 +118,9 @@ class SessionsViewModel(
         viewModelScope.launch {
             try {
                 val dir = _uiState.value.newSessionDirectory.ifBlank { null }
-                val pathInfo = app.apiClient.loadPath(getConfig(), dir)
-                browseDirectory(pathInfo.directory)
+                val workingRoot = app.preferences.workingRootDirectory.first().ifBlank { null }
+                val pathInfo = app.apiClient.loadPath(getConfig(), dir ?: workingRoot)
+                browseDirectory(dir ?: workingRoot ?: pathInfo.home)
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(pickerError = e.message)
             }
@@ -134,10 +135,10 @@ class SessionsViewModel(
         _uiState.value = _uiState.value.copy(pickerLoading = true, pickerError = null)
         viewModelScope.launch {
             try {
-                val items = app.apiClient.listFiles(getConfig(), path, path)
+                val items = app.apiClient.listFiles(getConfig(), "", path)
                 _uiState.value = _uiState.value.copy(
                     pickerPath = path,
-                    pickerItems = items.filter { it.type == "directory" }.sortedBy { it.name },
+                    pickerItems = items.filter { it.type == "directory" && !it.name.startsWith(".") }.sortedBy { it.name },
                     pickerLoading = false
                 )
             } catch (e: Exception) {
@@ -151,7 +152,7 @@ class SessionsViewModel(
         viewModelScope.launch { app.preferences.saveNewSessionDirectory(dir) }
     }
 
-    fun createSession(directory: String?) {
+    fun createSession(directory: String?, onSuccess: ((Session) -> Unit)? = null) {
         val dir = directory?.ifBlank { null }
         _uiState.value = _uiState.value.copy(isCreating = true, pickerError = null)
         viewModelScope.launch {
@@ -173,6 +174,7 @@ class SessionsViewModel(
                     showNewSessionPicker = false
                 )
                 refreshSessions(silent = false)
+                onSuccess?.invoke(created)
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(isCreating = false, pickerError = e.message)
             }

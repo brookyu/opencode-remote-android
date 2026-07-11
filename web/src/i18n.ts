@@ -32,6 +32,8 @@ type TranslationKey =
   | 'settings.themeSystem'
   | 'settings.themeLight'
   | 'settings.themeDark'
+  | 'settings.workingRootFolder'
+  | 'settings.workingRootFolderPlaceholder'
   | 'settings.draftHint'
   | 'settings.testedNotSaved'
   | 'settings.savedButton'
@@ -160,6 +162,8 @@ const translations: Record<LanguageCode, Record<TranslationKey, string>> = {
     'settings.username': 'Username',
     'settings.password': 'Password',
     'settings.passwordPlaceholder': 'Optional; leave blank for unsecured local server',
+    'settings.workingRootFolder': 'Working Root Folder',
+    'settings.workingRootFolderPlaceholder': 'e.g. /Users/username/Projects',
     'settings.save': 'Save Configuration',
     'settings.saving': 'Saving...',
     'settings.test': 'Test Connection',
@@ -301,6 +305,8 @@ const translations: Record<LanguageCode, Record<TranslationKey, string>> = {
     'settings.username': 'Username',
     'settings.password': 'Password',
     'settings.passwordPlaceholder': 'Opzionale; lascia vuoto per server locale non protetto',
+    'settings.workingRootFolder': 'Cartella radice di lavoro',
+    'settings.workingRootFolderPlaceholder': 'es. /Users/username/Projects',
     'settings.save': 'Salva configurazione',
     'settings.saving': 'Salvataggio...',
     'settings.test': 'Test connessione',
@@ -442,6 +448,8 @@ const translations: Record<LanguageCode, Record<TranslationKey, string>> = {
     'settings.username': '使用者名稱',
     'settings.password': '密碼',
     'settings.passwordPlaceholder': '選填；未受保護的本機伺服器可留空',
+    'settings.workingRootFolder': '工作根資料夾',
+    'settings.workingRootFolderPlaceholder': '例如 /Users/username/Projects',
     'settings.save': '儲存設定',
     'settings.saving': '儲存中...',
     'settings.test': '測試連線',

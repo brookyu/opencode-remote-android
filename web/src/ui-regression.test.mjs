@@ -59,7 +59,7 @@ assert.ok(app.includes("t('connection.reconnecting')"), 'slow reconnecting state
 assert.ok(styles.includes('.connection-status'), 'connection status should have a dedicated non-error visual treatment')
 assert.ok(app.includes('NEW_SESSION_DIRECTORY_STORAGE_KEY'), 'last new-session folder should persist separately from connection settings')
 assert.ok(app.includes('showNewSessionPicker'), 'New Session should open a per-session folder picker instead of applying one global folder')
-assert.ok(app.includes('api.loadPath(config, selectedNewSessionDirectory)'), 'folder picker should start from OpenCode /path')
+assert.ok(app.includes('api.loadPath(config, selectedNewSessionDirectory || workingRootFolder)'), 'folder picker should start from OpenCode /path')
 assert.ok(api.includes('listFiles(config: ServerConfig, path: string, directory?: string)'), 'API should expose OpenCode /file for directory browsing')
 assert.ok(app.includes("t('sessions.projectDirectoryLabel')"), 'folder picker should be localized')
 assert.ok(app.includes('api.createSession(config, "Mobile session", activeModel, directory)'), 'new sessions should pass only the picked directory to OpenCode')

@@ -26,10 +26,11 @@ const MODEL_STORAGE_KEY = "opencode.remote.model"
 const AGENT_STORAGE_KEY = "opencode.remote.agent"
 const THEME_STORAGE_KEY = "opencode.remote.theme"
 const NEW_SESSION_DIRECTORY_STORAGE_KEY = "opencode.remote.newSessionDirectory"
+const WORKING_ROOT_FOLDER_STORAGE_KEY = "opencode.remote.workingRootFolder"
 
 const defaultConfig: ServerConfig = {
-  host: "",
-  port: 4096,
+  host: "https://opencode.zencoded.cn",
+  port: 443,
   username: "opencode",
   password: ""
 }
@@ -242,6 +243,8 @@ function App() {
   const [sessions, setSessions] = useState<SessionView[]>([])
   const [selectedID, setSelectedID] = useState<string | null>(null)
   const [newSessionDirectory, setNewSessionDirectory] = useState(() => localStorage.getItem(NEW_SESSION_DIRECTORY_STORAGE_KEY) ?? "")
+  const [workingRootFolder, setWorkingRootFolder] = useState(() => localStorage.getItem(WORKING_ROOT_FOLDER_STORAGE_KEY) ?? "")
+  const [draftWorkingRootFolder, setDraftWorkingRootFolder] = useState(workingRootFolder)
   const [showNewSessionPicker, setShowNewSessionPicker] = useState(false)
   const [pickerPath, setPickerPath] = useState("")
   const [pickerItems, setPickerItems] = useState<FileEntry[]>([])
@@ -359,7 +362,7 @@ function App() {
   const hasConfiguredServer = Boolean(config.host && config.port > 0)
   const draftConfigKey = configKey(draftConfig)
   const savedConfigKey = configKey(config)
-  const hasDraftChanges = draftConfigKey !== savedConfigKey
+  const hasDraftChanges = draftConfigKey !== savedConfigKey || draftWorkingRootFolder !== workingRootFolder
   const canTestDraft = canTestConfig(draftConfig)
   const testAlreadyPassedForDraft = lastTestedConfigKey === draftConfigKey
   const connectionStatusText = connectionMessage || (connectionState === "connecting"
@@ -407,6 +410,8 @@ function App() {
   function saveConfig() {
     setConfig(draftConfig)
     localStorage.setItem(STORAGE_KEY, JSON.stringify(draftConfig))
+    setWorkingRootFolder(draftWorkingRootFolder)
+    localStorage.setItem(WORKING_ROOT_FOLDER_STORAGE_KEY, draftWorkingRootFolder)
     setSettingsNotice({ type: "success", text: t('settings.saved') })
     setConnectionState("connecting")
     setConnectionMessage(t('connection.connecting'))
@@ -661,9 +666,9 @@ function App() {
     setPickerLoading(true)
     setPickerError(null)
     try {
-      const items = await api.listFiles(config, path, path)
+      const items = await api.listFiles(config, "", path)
       setPickerPath(path)
-      setPickerItems(items.filter((item) => item.type === "directory").sort((a, b) => a.name.localeCompare(b.name)))
+      setPickerItems(items.filter((item) => item.type === "directory" && !item.name.startsWith(".")).sort((a, b) => a.name.localeCompare(b.name)))
     } catch (err) {
       setPickerError((err as Error).message)
       setPickerItems([])
@@ -678,8 +683,8 @@ function App() {
     setShowNewSessionPicker(true)
     setPickerError(null)
     try {
-      const pathInfo = await api.loadPath(config, selectedNewSessionDirectory)
-      await browseNewSessionDirectory(selectedNewSessionDirectory ?? pathInfo.directory)
+      const pathInfo = await api.loadPath(config, selectedNewSessionDirectory || workingRootFolder)
+      await browseNewSessionDirectory(selectedNewSessionDirectory || workingRootFolder || pathInfo.home)
     } catch (err) {
       setPickerError((err as Error).message)
     }
@@ -1075,6 +1080,16 @@ function App() {
               value={draftConfig.password}
               onChange={(event) => setDraftConfig({ ...draftConfig, password: event.target.value })}
               placeholder={t('settings.passwordPlaceholder')}
+            />
+          </label>
+          
+          <label htmlFor="workingRootFolder">
+            {t('settings.workingRootFolder')}
+            <input
+              id="workingRootFolder"
+              value={draftWorkingRootFolder}
+              onChange={(event) => setDraftWorkingRootFolder(event.target.value)}
+              placeholder={t('settings.workingRootFolderPlaceholder')}
             />
           </label>
           </div>

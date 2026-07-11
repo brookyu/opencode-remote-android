@@ -32,6 +32,8 @@
     <string name="settings_port_hint">4096</string>
     <string name="settings_username_hint">opencode</string>
     <string name="settings_password_hint">密碼</string>
+    <string name="settings_working_root_folder">工作根資料夾</string>
+    <string name="settings_working_root_folder_hint">/Users/username/Projects</string>
 
     <!-- Sessions -->
     <string name="sessions_title">工作階段</string>

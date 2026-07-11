@@ -17,12 +17,15 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HelpScreen(
     state: SessionsUiState,
     onCommandFilterChange: (String) -> Unit,
-    onCommandSearchChange: (String) -> Unit
+    onCommandSearchChange: (String) -> Unit,
+    onBack: () -> Unit
 ) {
     var selectedTab by remember { mutableStateOf(0) }
     val tabs = listOf(
@@ -35,7 +38,17 @@ fun HelpScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text(stringResource(R.string.help_title)) })
+            TopAppBar(
+                title = { Text(stringResource(R.string.help_title)) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.detail_back)
+                        )
+                    }
+                }
+            )
         }
     ) { padding ->
         Column(

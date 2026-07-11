@@ -33,7 +33,8 @@ class MainActivity : ComponentActivity() {
         setContent {
             val themePref by app.preferences.theme.collectAsState(initial = "system")
             OpenCodeTheme(
-                themePreference = ThemePref.fromKey(themePref)
+                themePreference = ThemePref.fromKey(themePref),
+                dynamicColor = false
             ) {
                 AppNavigation()
             }

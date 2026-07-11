@@ -33,6 +33,8 @@ import ai.opencode.remote.R
 import ai.opencode.remote.formatTime
 import ai.opencode.remote.parentDirectory
 import ai.opencode.remote.data.models.FileEntry
+import androidx.compose.material.icons.filled.Help
+import androidx.compose.material.icons.filled.Settings
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,7 +52,9 @@ fun SessionsScreen(
     onPickerCreate: (String?) -> Unit,
     onPickerDismiss: () -> Unit,
     onCommandFilterChange: (String) -> Unit,
-    onErrorDismiss: () -> Unit
+    onErrorDismiss: () -> Unit,
+    onHelpClick: () -> Unit,
+    onSettingsClick: () -> Unit
 ) {
     Scaffold(
         floatingActionButton = {
@@ -70,6 +74,12 @@ fun SessionsScreen(
                         } else {
                             Icon(Icons.Filled.Refresh, contentDescription = stringResource(R.string.sessions_refresh))
                         }
+                    }
+                    IconButton(onClick = onHelpClick) {
+                        Icon(Icons.Filled.Help, contentDescription = stringResource(R.string.help_title))
+                    }
+                    IconButton(onClick = onSettingsClick) {
+                        Icon(Icons.Filled.Settings, contentDescription = stringResource(R.string.settings_title))
                     }
                 }
             )
@@ -490,10 +500,10 @@ private fun FolderPickerDialog(
                                 }
                             }
 
-                            items(state.pickerItems, key = { it.path }) { item ->
+                            items(state.pickerItems, key = { it.absolute }) { item ->
                                 FolderRow(
                                     name = item.name,
-                                    onClick = { onBrowse(item.path) }
+                                    onClick = { onBrowse(item.absolute) }
                                 )
                             }
                         }

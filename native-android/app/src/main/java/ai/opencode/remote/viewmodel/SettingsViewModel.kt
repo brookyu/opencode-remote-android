@@ -18,6 +18,8 @@ import kotlinx.coroutines.launch
 data class SettingsUiState(
     val savedConfig: ServerConfig = ServerConfig(),
     val draftConfig: ServerConfig = ServerConfig(),
+    val savedWorkingRootDirectory: String = "",
+    val draftWorkingRootDirectory: String = "",
     val language: Language = Language.EN,
     val theme: ThemePref = ThemePref.SYSTEM,
     val isTesting: Boolean = false,
@@ -27,7 +29,8 @@ data class SettingsUiState(
     val lastTestedConfigKey: String? = null
 ) {
     val hasDraftChanges: Boolean
-        get() = configKey(draftConfig) != configKey(savedConfig)
+        get() = configKey(draftConfig) != configKey(savedConfig) ||
+            draftWorkingRootDirectory != savedWorkingRootDirectory
 
     val canTestDraft: Boolean
         get() = draftConfig.host.isNotBlank() && draftConfig.port > 0 && draftConfig.username.isNotBlank()
@@ -66,9 +69,12 @@ class SettingsViewModel(
             val config = app.preferences.serverConfig.first()
             val lang = app.preferences.language.first()
             val theme = app.preferences.theme.first()
+            val workingRoot = app.preferences.workingRootDirectory.first()
             _uiState.value = SettingsUiState(
                 savedConfig = config,
                 draftConfig = config,
+                savedWorkingRootDirectory = workingRoot,
+                draftWorkingRootDirectory = workingRoot,
                 language = Language.fromCode(lang),
                 theme = ThemePref.fromKey(theme)
             )
@@ -92,6 +98,10 @@ class SettingsViewModel(
         _uiState.value = _uiState.value.copy(draftConfig = _uiState.value.draftConfig.copy(password = password))
     }
 
+    fun updateDraftWorkingRootDirectory(dir: String) {
+        _uiState.value = _uiState.value.copy(draftWorkingRootDirectory = dir)
+    }
+
     fun updateLanguage(lang: Language) {
         _uiState.value = _uiState.value.copy(language = lang)
         I18n.setLanguage(lang)
@@ -111,11 +121,14 @@ class SettingsViewModel(
 
     fun saveConfig() {
         val draft = _uiState.value.draftConfig
+        val workingRootDraft = _uiState.value.draftWorkingRootDirectory
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isSaving = true)
             app.preferences.saveServerConfig(draft)
+            app.preferences.saveWorkingRootDirectory(workingRootDraft)
             _uiState.value = _uiState.value.copy(
                 savedConfig = draft,
+                savedWorkingRootDirectory = workingRootDraft,
                 isSaving = false,
                 notice = SettingsNotice(NoticeType.SUCCESS, "settings_saved")
             )

@@ -85,39 +85,7 @@ fun AppNavigation() {
         }
     }
 
-    Scaffold(
-        bottomBar = {
-            NavigationBar {
-                NavigationBarItem(
-                    selected = selectedTab == Tab.Sessions,
-                    onClick = { selectedTab = Tab.Sessions },
-                    enabled = hasServer,
-                    icon = { Icon(Tab.Sessions.icon, contentDescription = Tab.Sessions.label) },
-                    label = { Text(Tab.Sessions.label) }
-                )
-                NavigationBarItem(
-                    selected = selectedTab == Tab.Detail,
-                    onClick = { selectedTab = Tab.Detail },
-                    enabled = selectedSession != null,
-                    icon = { Icon(Tab.Detail.icon, contentDescription = Tab.Detail.label) },
-                    label = { Text(Tab.Detail.label) }
-                )
-                NavigationBarItem(
-                    selected = selectedTab == Tab.Settings,
-                    onClick = { selectedTab = Tab.Settings },
-                    icon = { Icon(Tab.Settings.icon, contentDescription = Tab.Settings.label) },
-                    label = { Text(Tab.Settings.label) }
-                )
-                NavigationBarItem(
-                    selected = selectedTab == Tab.Help,
-                    onClick = { selectedTab = Tab.Help },
-                    enabled = hasServer,
-                    icon = { Icon(Tab.Help.icon, contentDescription = Tab.Help.label) },
-                    label = { Text(Tab.Help.label) }
-                )
-            }
-        }
-    ) { innerPadding ->
+    Scaffold { innerPadding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -146,10 +114,23 @@ fun AppNavigation() {
                     onPickerSelectDir = { dir ->
                         sessionsViewModel.setNewSessionDirectory(dir)
                     },
-                    onPickerCreate = { dir -> sessionsViewModel.createSession(dir) },
+                    onPickerCreate = { dir ->
+                        sessionsViewModel.createSession(dir) { created ->
+                            selectedSession = Triple(created.id, created.title, created.directory)
+                            selectedSessionStatus = "idle"
+                            selectedSessionUpdated = created.time.updated
+                            detailViewModel.openSession(
+                                created.id, created.title, created.directory,
+                                "idle", created.time.updated
+                            )
+                            selectedTab = Tab.Detail
+                        }
+                    },
                     onPickerDismiss = sessionsViewModel::hideNewSessionPicker,
                     onCommandFilterChange = sessionsViewModel::setCommandFilter,
-                    onErrorDismiss = sessionsViewModel::clearError
+                    onErrorDismiss = sessionsViewModel::clearError,
+                    onHelpClick = { selectedTab = Tab.Help },
+                    onSettingsClick = { selectedTab = Tab.Settings }
                 )
 
                 Tab.Detail -> {
@@ -183,17 +164,20 @@ fun AppNavigation() {
                     onPortChange = settingsViewModel::updateDraftPort,
                     onUsernameChange = settingsViewModel::updateDraftUsername,
                     onPasswordChange = settingsViewModel::updateDraftPassword,
+                    onWorkingRootChange = settingsViewModel::updateDraftWorkingRootDirectory,
                     onLanguageChange = settingsViewModel::updateLanguage,
                     onThemeChange = settingsViewModel::updateTheme,
                     onSave = settingsViewModel::saveConfig,
                     onTest = settingsViewModel::testConnection,
-                    onNoticeDismiss = settingsViewModel::clearNotice
+                    onNoticeDismiss = settingsViewModel::clearNotice,
+                    onBack = { selectedTab = Tab.Sessions }
                 )
 
                 Tab.Help -> HelpScreen(
                     state = sessionsState,
                     onCommandFilterChange = sessionsViewModel::setCommandFilter,
-                    onCommandSearchChange = sessionsViewModel::setCommandSearch
+                    onCommandSearchChange = sessionsViewModel::setCommandSearch,
+                    onBack = { selectedTab = Tab.Sessions }
                 )
             }
         }

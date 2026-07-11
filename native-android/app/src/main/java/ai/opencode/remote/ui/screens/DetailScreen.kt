@@ -48,6 +48,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import com.mikepenz.markdown.m3.Markdown
+import com.mikepenz.markdown.m3.markdownColor
+import com.mikepenz.markdown.m3.markdownTypography
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.input.key.*
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -120,18 +127,21 @@ fun DetailScreen(
                 text = state.composerText,
                 onChange = onComposerChange,
                 onSend = onSend,
-                isWorking = state.isWorking
+                isWorking = state.isWorking,
+                modifier = Modifier.imePadding()
             )
         }
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
+                .padding(padding),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             val stripScroll = rememberScrollState()
             Row(
                 modifier = Modifier
+                    .widthIn(max = 800.dp)
                     .fillMaxWidth()
                     .horizontalScroll(stripScroll)
                     .padding(horizontal = 12.dp, vertical = 4.dp),
@@ -190,45 +200,60 @@ fun DetailScreen(
 
             state.error?.let { err ->
                 Snackbar(
-                    modifier = Modifier.padding(4.dp),
+                    modifier = Modifier
+                        .widthIn(max = 800.dp)
+                        .padding(4.dp),
                     action = { TextButton(onClick = onErrorDismiss) { Text(stringResource(R.string.close)) } }
                 ) { Text(err) }
             }
 
             if (state.todos.isNotEmpty()) {
-                TodoSection(
-                    todos = state.todos,
-                    expanded = state.todosExpanded,
-                    onToggle = onToggleTodos
-                )
-            }
-
-            if (state.renderedMessages.isEmpty() && !state.isLoading && !state.showTypingBubble) {
                 Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
+                    modifier = Modifier
+                        .widthIn(max = 800.dp)
+                        .fillMaxWidth()
                 ) {
-                    Text(
-                        stringResource(R.string.detail_no_messages),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    TodoSection(
+                        todos = state.todos,
+                        expanded = state.todosExpanded,
+                        onToggle = onToggleTodos
                     )
                 }
-            } else {
-                LazyColumn(
-                    state = listState,
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(state.renderedMessages) { (msg, text) ->
-                        MessageBubble(
-                            role = msg.info.role,
-                            text = text
+            }
+
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .widthIn(max = 800.dp)
+                    .fillMaxWidth()
+            ) {
+                if (state.renderedMessages.isEmpty() && !state.isLoading && !state.showTypingBubble) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            stringResource(R.string.detail_no_messages),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    if (state.showTypingBubble) {
-                        item { TypingIndicator() }
+                } else {
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(state.renderedMessages) { (msg, text) ->
+                            MessageBubble(
+                                role = msg.info.role,
+                                text = text
+                            )
+                        }
+                        if (state.showTypingBubble) {
+                            item { TypingIndicator() }
+                        }
                     }
                 }
             }
@@ -393,7 +418,7 @@ private fun MessageBubble(role: String, text: String) {
                 bottomStart = if (isUser) 16.dp else 4.dp,
                 bottomEnd = if (isUser) 4.dp else 16.dp
             ),
-            modifier = Modifier.widthIn(max = 340.dp)
+            modifier = Modifier.fillMaxWidth(0.85f).widthIn(max = 640.dp)
         ) {
             if (isUser) {
                 Text(
@@ -405,9 +430,63 @@ private fun MessageBubble(role: String, text: String) {
             } else {
                 Markdown(
                     content = text,
+                    colors = markdownColor(
+                        text = MaterialTheme.colorScheme.onSurfaceVariant,
+                        codeText = MaterialTheme.colorScheme.primary,
+                        inlineCodeText = MaterialTheme.colorScheme.tertiary,
+                        linkText = MaterialTheme.colorScheme.primary,
+                        codeBackground = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
+                        inlineCodeBackground = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
+                        dividerColor = MaterialTheme.colorScheme.outlineVariant
+                    ),
+                    typography = markdownTypography(
+                        text = MaterialTheme.typography.bodyMedium.copy(
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        ),
+                        h1 = MaterialTheme.typography.titleLarge.copy(
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        h2 = MaterialTheme.typography.titleMedium.copy(
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        h3 = MaterialTheme.typography.titleSmall.copy(
+                            color = MaterialTheme.colorScheme.tertiary,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        h4 = MaterialTheme.typography.bodyMedium.copy(
+                            color = MaterialTheme.colorScheme.tertiary,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        h5 = MaterialTheme.typography.bodyMedium.copy(
+                            color = MaterialTheme.colorScheme.tertiary,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        h6 = MaterialTheme.typography.bodySmall.copy(
+                            color = MaterialTheme.colorScheme.tertiary,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        code = MaterialTheme.typography.bodyMedium.copy(
+                            fontFamily = FontFamily.Monospace,
+                            color = MaterialTheme.colorScheme.primary
+                        ),
+                        inlineCode = MaterialTheme.typography.bodyMedium.copy(
+                            fontFamily = FontFamily.Monospace,
+                            color = MaterialTheme.colorScheme.tertiary
+                        ),
+                        quote = MaterialTheme.typography.bodyMedium.copy(
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                            fontStyle = FontStyle.Italic
+                        ),
+                        link = MaterialTheme.typography.bodyMedium.copy(
+                            color = MaterialTheme.colorScheme.primary,
+                            textDecoration = TextDecoration.Underline
+                        )
+                    ),
                     modifier = Modifier
                         .padding(horizontal = 12.dp, vertical = 10.dp)
-                        .widthIn(max = 340.dp)
+                        .fillMaxWidth()
                 )
             }
         }
@@ -473,55 +552,76 @@ private fun ComposerBar(
     text: String,
     onChange: (String) -> Unit,
     onSend: () -> Unit,
-    isWorking: Boolean
+    isWorking: Boolean,
+    modifier: Modifier = Modifier
 ) {
     Surface(
         tonalElevation = 2.dp,
-        modifier = Modifier.fillMaxWidth()
+        modifier = modifier.fillMaxWidth()
     ) {
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp),
-            shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.Center
         ) {
-            Row(
+            Surface(
                 modifier = Modifier
+                    .widthIn(max = 720.dp)
                     .fillMaxWidth()
-                    .padding(horizontal = 4.dp, vertical = 4.dp),
-                verticalAlignment = Alignment.Bottom
+                    .padding(8.dp),
+                shape = RoundedCornerShape(24.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
             ) {
-                TextField(
-                    value = text,
-                    onValueChange = onChange,
+                Row(
                     modifier = Modifier
-                        .weight(1f)
-                        .padding(vertical = 4.dp),
-                    placeholder = { Text(stringResource(R.string.detail_composer_hint)) },
-                    maxLines = 5,
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent,
-                        disabledContainerColor = Color.Transparent,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent,
-                        disabledIndicatorColor = Color.Transparent
-                    ),
-                    keyboardOptions = KeyboardOptions.Default
-                )
-                Spacer(Modifier.width(4.dp))
-                FloatingActionButton(
-                    onClick = onSend,
-                    shape = CircleShape,
-                    containerColor = if (isWorking) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
-                    contentColor = if (isWorking) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.size(44.dp)
+                        .fillMaxWidth()
+                        .padding(horizontal = 4.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.Bottom
                 ) {
-                    Icon(
-                        if (isWorking) Icons.Filled.Stop else Icons.Filled.Send,
-                        contentDescription = if (isWorking) stringResource(R.string.detail_stop) else stringResource(R.string.detail_send)
+                    TextField(
+                        value = text,
+                        onValueChange = onChange,
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(vertical = 4.dp)
+                            .onPreviewKeyEvent { keyEvent ->
+                                if (keyEvent.key == Key.Enter && keyEvent.type == KeyEventType.KeyDown) {
+                                    if (keyEvent.isShiftPressed) {
+                                        onChange(text + "\n")
+                                    } else {
+                                        if (text.isNotBlank() && !isWorking) {
+                                            onSend()
+                                        }
+                                    }
+                                    true
+                                } else {
+                                    false
+                                }
+                            },
+                        placeholder = { Text(stringResource(R.string.detail_composer_hint)) },
+                        maxLines = 5,
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                            disabledContainerColor = Color.Transparent,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            disabledIndicatorColor = Color.Transparent
+                        ),
+                        keyboardOptions = KeyboardOptions.Default
                     )
+                    Spacer(Modifier.width(4.dp))
+                    FloatingActionButton(
+                        onClick = onSend,
+                        shape = CircleShape,
+                        containerColor = if (isWorking) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                        contentColor = if (isWorking) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(44.dp)
+                    ) {
+                        Icon(
+                            if (isWorking) Icons.Filled.Stop else Icons.Filled.Send,
+                            contentDescription = if (isWorking) stringResource(R.string.detail_stop) else stringResource(R.string.detail_send)
+                        )
+                    }
                 }
             }
         }

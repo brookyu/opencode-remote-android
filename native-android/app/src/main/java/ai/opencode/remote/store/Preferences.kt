@@ -25,6 +25,7 @@ class Preferences(private val context: Context) {
         private val KEY_MODEL = stringPreferencesKey("selected_model_key")
         private val KEY_AGENT = stringPreferencesKey("selected_agent_id")
         private val KEY_NEW_SESSION_DIR = stringPreferencesKey("new_session_directory")
+        private val KEY_WORKING_ROOT_DIR = stringPreferencesKey("working_root_directory")
     }
 
     val serverConfig: Flow<ServerConfig> = context.dataStore.data.map { prefs ->
@@ -76,5 +77,11 @@ class Preferences(private val context: Context) {
 
     suspend fun saveNewSessionDirectory(dir: String) {
         context.dataStore.edit { it[KEY_NEW_SESSION_DIR] = dir }
+    }
+
+    val workingRootDirectory: Flow<String> = context.dataStore.data.map { it[KEY_WORKING_ROOT_DIR] ?: "" }
+
+    suspend fun saveWorkingRootDirectory(dir: String) {
+        context.dataStore.edit { it[KEY_WORKING_ROOT_DIR] = dir }
     }
 }

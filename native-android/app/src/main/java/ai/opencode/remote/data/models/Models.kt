@@ -6,8 +6,8 @@ import kotlinx.serialization.json.JsonElement
 
 @Serializable
 data class ServerConfig(
-    val host: String = "",
-    val port: Int = 4096,
+    val host: String = "https://opencode.zencoded.cn",
+    val port: Int = 443,
     val username: String = "opencode",
     val password: String = ""
 )

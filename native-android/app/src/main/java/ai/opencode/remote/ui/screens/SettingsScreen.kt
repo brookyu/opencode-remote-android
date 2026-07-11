@@ -32,6 +32,8 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import ai.opencode.remote.R
 
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
@@ -40,11 +42,13 @@ fun SettingsScreen(
     onPortChange: (Int) -> Unit,
     onUsernameChange: (String) -> Unit,
     onPasswordChange: (String) -> Unit,
+    onWorkingRootChange: (String) -> Unit,
     onLanguageChange: (Language) -> Unit,
     onThemeChange: (ThemePref) -> Unit,
     onSave: () -> Unit,
     onTest: () -> Unit,
-    onNoticeDismiss: () -> Unit
+    onNoticeDismiss: () -> Unit,
+    onBack: () -> Unit
 ) {
     var showPassword by remember { mutableStateOf(false) }
     var portText by remember(state.draftConfig.port) {
@@ -53,7 +57,17 @@ fun SettingsScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text(stringResource(R.string.settings_title)) })
+            TopAppBar(
+                title = { Text(stringResource(R.string.settings_title)) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.detail_back)
+                        )
+                    }
+                }
+            )
         }
     ) { padding ->
         Column(
@@ -127,6 +141,15 @@ fun SettingsScreen(
                                     )
                                 }
                             }
+                        )
+                    }
+                    LabeledField(label = stringResource(R.string.settings_working_root_folder)) {
+                        OutlinedTextField(
+                            value = state.draftWorkingRootDirectory,
+                            onValueChange = onWorkingRootChange,
+                            modifier = Modifier.fillMaxWidth(),
+                            placeholder = { Text(stringResource(R.string.settings_working_root_folder_hint)) },
+                            singleLine = true
                         )
                     }
                 }

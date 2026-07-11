@@ -32,6 +32,8 @@
     <string name="settings_port_hint">4096</string>
     <string name="settings_username_hint">opencode</string>
     <string name="settings_password_hint">password</string>
+    <string name="settings_working_root_folder">Cartella radice di lavoro</string>
+    <string name="settings_working_root_folder_hint">/Users/username/Projects</string>
 
     <!-- Sessions -->
     <string name="sessions_title">Sessioni</string>
