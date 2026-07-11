@@ -1,15 +1,21 @@
 package ai.opencode.remote.ui.screens
 
 import ai.opencode.remote.viewmodel.*
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Refresh
@@ -20,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import ai.opencode.remote.R
@@ -46,6 +53,13 @@ fun SessionsScreen(
     onErrorDismiss: () -> Unit
 ) {
     Scaffold(
+        floatingActionButton = {
+            ExtendedFloatingActionButton(
+                onClick = onNewSession,
+                icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+                text = { Text(stringResource(R.string.sessions_new)) }
+            )
+        },
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.sessions_title)) },
@@ -57,9 +71,6 @@ fun SessionsScreen(
                             Icon(Icons.Filled.Refresh, contentDescription = stringResource(R.string.sessions_refresh))
                         }
                     }
-                    IconButton(onClick = onNewSession) {
-                        Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.sessions_new))
-                    }
                 }
             )
         }
@@ -69,12 +80,15 @@ fun SessionsScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // Connection state banner
-            if (state.connectionState != ConnectionState.CONNECTED) {
+            AnimatedVisibility(
+                visible = state.connectionState != ConnectionState.CONNECTED &&
+                    state.connectionState != ConnectionState.IDLE,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically()
+            ) {
                 ConnectionBanner(state.connectionState)
             }
 
-            // Error snackbar
             state.error?.let { err ->
                 Snackbar(
                     modifier = Modifier.padding(8.dp),
@@ -82,7 +96,6 @@ fun SessionsScreen(
                 ) { Text(err) }
             }
 
-            // Summary bar
             if (state.sessions.isNotEmpty()) {
                 Row(
                     modifier = Modifier
@@ -112,7 +125,6 @@ fun SessionsScreen(
                 }
             }
 
-            // Search bar
             OutlinedTextField(
                 value = state.searchQuery,
                 onValueChange = onSearchQueryChange,
@@ -121,10 +133,21 @@ fun SessionsScreen(
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 placeholder = { Text(stringResource(R.string.sessions_search)) },
                 leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-                singleLine = true
+                trailingIcon = {
+                    if (state.searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { onSearchQueryChange("") }) {
+                            Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.close))
+                        }
+                    }
+                },
+                singleLine = true,
+                shape = MaterialTheme.shapes.extraLarge,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                )
             )
 
-            // Sessions list
             if (state.filteredSessions.isEmpty() && !state.isRefreshing) {
                 EmptyState()
             } else {
@@ -145,7 +168,6 @@ fun SessionsScreen(
         }
     }
 
-    // Delete confirmation dialog
     state.sessionToDelete?.let { session ->
         AlertDialog(
             onDismissRequest = onCancelDelete,
@@ -163,7 +185,6 @@ fun SessionsScreen(
         )
     }
 
-    // New session folder picker
     if (state.showNewSessionPicker) {
         FolderPickerDialog(
             state = state,
@@ -177,24 +198,56 @@ fun SessionsScreen(
 
 @Composable
 private fun ConnectionBanner(state: ConnectionState) {
-    val (bg, text) = when (state) {
-        ConnectionState.CONNECTING -> MaterialTheme.colorScheme.secondaryContainer to stringResource(R.string.sessions_connection_connecting)
-        ConnectionState.RECONNECTING -> MaterialTheme.colorScheme.secondaryContainer to stringResource(R.string.sessions_connection_reconnecting)
-        ConnectionState.OFFLINE -> MaterialTheme.colorScheme.errorContainer to stringResource(R.string.sessions_connection_offline)
-        ConnectionState.IDLE -> MaterialTheme.colorScheme.surfaceVariant to ""
-        ConnectionState.CONNECTED -> MaterialTheme.colorScheme.surfaceVariant to ""
+    val (bg, fg, text) = when (state) {
+        ConnectionState.CONNECTING -> Triple(
+            MaterialTheme.colorScheme.tertiaryContainer,
+            MaterialTheme.colorScheme.onTertiaryContainer,
+            stringResource(R.string.sessions_connection_connecting)
+        )
+        ConnectionState.RECONNECTING -> Triple(
+            MaterialTheme.colorScheme.tertiaryContainer,
+            MaterialTheme.colorScheme.onTertiaryContainer,
+            stringResource(R.string.sessions_connection_reconnecting)
+        )
+        ConnectionState.OFFLINE -> Triple(
+            MaterialTheme.colorScheme.errorContainer,
+            MaterialTheme.colorScheme.onErrorContainer,
+            stringResource(R.string.sessions_connection_offline)
+        )
+        ConnectionState.IDLE -> Triple(
+            MaterialTheme.colorScheme.surfaceVariant,
+            MaterialTheme.colorScheme.onSurfaceVariant,
+            ""
+        )
+        ConnectionState.CONNECTED -> Triple(
+            MaterialTheme.colorScheme.surfaceVariant,
+            MaterialTheme.colorScheme.onSurfaceVariant,
+            ""
+        )
     }
     if (text.isNotEmpty()) {
         Surface(
             color = bg,
+            contentColor = fg,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text(
-                text = text,
+            Row(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSecondaryContainer
-            )
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .clip(RoundedCornerShape(50))
+                        .background(fg)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = fg
+                )
+            }
         }
     }
 }
@@ -205,13 +258,21 @@ private fun EmptyState() {
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Icon(
+                Icons.Filled.Chat,
+                contentDescription = null,
+                modifier = Modifier.size(64.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+            )
             Text(
                 stringResource(R.string.sessions_empty),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(Modifier.height(4.dp))
             Text(
                 stringResource(R.string.sessions_empty_hint),
                 style = MaterialTheme.typography.bodySmall,
@@ -227,71 +288,116 @@ private fun SessionCard(
     onClick: () -> Unit,
     onDelete: () -> Unit
 ) {
+    val borderColor = sessionStatusColor(session.status)
+    val cardShape = RoundedCornerShape(16.dp)
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
+            .clip(cardShape)
             .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        shape = cardShape,
+        colors = CardDefaults.elevatedCardColors(),
+        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 0.dp),
+        border = null
     ) {
-        Column(
-            modifier = Modifier.padding(12.dp)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    session.title.ifBlank { "Untitled" },
-                    modifier = Modifier.weight(1f),
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                StatusPill(status = session.status)
-                IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
-                    Icon(
-                        Icons.Filled.Delete,
-                        contentDescription = stringResource(R.string.sessions_delete_confirm),
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            if (session.directory.isNotBlank()) {
-                Text(
-                    session.directory,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-
-            Row(
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
+                    .width(4.dp)
+                    .fillMaxHeight()
+                    .background(borderColor)
+            )
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(16.dp)
             ) {
-                if (session.files > 0 || session.additions > 0 || session.deletions > 0) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Text(
-                        "+${session.additions} -${session.deletions} (${session.files} files)",
+                        session.title.ifBlank { "Untitled" },
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    StatusPill(status = session.status)
+                    IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
+                        Icon(
+                            Icons.Filled.Delete,
+                            contentDescription = stringResource(R.string.sessions_delete_confirm),
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                if (session.directory.isNotBlank()) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        session.directory,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
-                Text(
-                    formatTime(session.updated),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+
+                session.model?.let { model ->
+                    Spacer(Modifier.height(6.dp))
+                    AssistChip(
+                        onClick = {},
+                        label = {
+                            Text(
+                                text = model.modelID,
+                                style = MaterialTheme.typography.labelSmall,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        },
+                        leadingIcon = null,
+                        modifier = Modifier.height(24.dp)
+                    )
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 6.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    if (session.files > 0 || session.additions > 0 || session.deletions > 0) {
+                        Text(
+                            "+${session.additions} -${session.deletions} (${session.files} files)",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    Text(
+                        formatTime(session.updated),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun sessionStatusColor(status: String): androidx.compose.ui.graphics.Color {
+    return when (status) {
+        "busy" -> MaterialTheme.colorScheme.tertiary
+        "retry" -> MaterialTheme.colorScheme.error
+        "error" -> MaterialTheme.colorScheme.error
+        "finished" -> MaterialTheme.colorScheme.tertiary
+        else -> MaterialTheme.colorScheme.outline
     }
 }
 
@@ -307,15 +413,17 @@ private fun StatusPill(status: String) {
         else -> MaterialTheme.colorScheme.outline to R.string.sessions_status_idle
     }
     Surface(
-        color = color.copy(alpha = 0.15f),
+        color = color.copy(alpha = 0.18f),
+        contentColor = color,
         shape = RoundedCornerShape(50),
         modifier = Modifier.padding(horizontal = 4.dp)
     ) {
         Text(
             stringResource(labelRes),
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
             style = MaterialTheme.typography.labelSmall,
-            color = color
+            color = color,
+            fontWeight = FontWeight.Medium
         )
     }
 }
@@ -334,7 +442,6 @@ private fun FolderPickerDialog(
         text = {
             Box(modifier = Modifier.fillMaxWidth().heightIn(max = 400.dp)) {
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    // Current path
                     Text(
                         stringResource(R.string.picker_current, state.pickerPath.ifBlank { "/" }),
                         style = MaterialTheme.typography.bodySmall,
@@ -362,7 +469,6 @@ private fun FolderPickerDialog(
                         LazyColumn(
                             modifier = Modifier.fillMaxWidth().heightIn(max = 300.dp)
                         ) {
-                            // Parent directory
                             val parent = parentDirectory(state.pickerPath)
                             if (parent != null) {
                                 item {
@@ -418,8 +524,9 @@ private fun FolderRow(name: String, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
             .clickable(onClick = onClick)
-            .padding(vertical = 8.dp, horizontal = 4.dp),
+            .padding(vertical = 10.dp, horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(

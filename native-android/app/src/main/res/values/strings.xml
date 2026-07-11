@@ -79,6 +79,7 @@
     <string name="detail_no_messages">No messages yet. Send a prompt to start.</string>
     <string name="detail_ai_chip">AI</string>
     <string name="detail_details_chip">Details</string>
+    <string name="detail_model_loading">Loading model…</string>
     <string name="detail_typing">Thinking…</string>
 
     <!-- AI Sheet -->

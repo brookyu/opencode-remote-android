@@ -60,6 +60,9 @@ data class DetailUiState(
             ?: primaryAgents.find { it.id == "build" }
             ?: primaryAgents.firstOrNull()
 
+    val activeAgentId: String
+        get() = activeAgent?.id ?: "build"
+
     val selectedModel: ModelSelection?
         get() = modelFromKey(selectedModelKey)
 
@@ -151,10 +154,12 @@ class DetailViewModel(
                         shouldPlayCompletion = false
                         app.playCompletionSound()
                     }
-                    _uiState.value = _uiState.value.copy(sessionStatus = newStatus, isWaitingForReply = false)
-                } else {
-                    _uiState.value = _uiState.value.copy(sessionStatus = newStatus)
                 }
+                val finalWaiting = if (isNowIdle && !_uiState.value.isSending) false else _uiState.value.isWaitingForReply
+                _uiState.value = _uiState.value.copy(
+                    sessionStatus = newStatus,
+                    isWaitingForReply = finalWaiting
+                )
             } catch (e: Exception) { }
         }
     }
@@ -172,11 +177,8 @@ class DetailViewModel(
 
                 if (requestIndex != loadRequestIndex) return@launch
 
-                val currentMessages = _uiState.value.messages
-                val newMessages = if (currentMessages.sumOf { extractText(it).length } > msg.sumOf { extractText(it).length }) currentMessages else msg
-
                 _uiState.value = _uiState.value.copy(
-                    messages = newMessages,
+                    messages = msg,
                     todos = todo,
                     diffFiles = diff,
                     isLoading = false,
@@ -184,7 +186,7 @@ class DetailViewModel(
                 )
 
                 // Check if assistant reply arrived
-                checkAssistantReply(newMessages)
+                checkAssistantReply(msg)
 
                 // Load project dashboard
                 loadProjectDashboard(directory)
@@ -271,12 +273,12 @@ class DetailViewModel(
 
     private fun checkAssistantReply(messages: List<MessageEnvelope>) {
         if (!_uiState.value.isWaitingForReply) return
-        val baselineIds = awaitingBaseline.split("|").mapNotNull { it.substringBefore(":").takeIf { id -> id.isNotBlank() } }.toSet()
-        val assistantMessages = messages.filter { it.info.role != "user" }
-        val hasNewCompleted = assistantMessages.any { msg ->
-            msg.info.id !in baselineIds && msg.info.time.completed != null
-        }
-        if (hasNewCompleted) {
+        val currentSignature = messages
+            .filter { it.info.role != "user" }
+            .map { it to extractText(it) }
+            .filter { it.second.isNotEmpty() }
+            .joinToString("|") { "${it.first.info.id}:${it.second.length}" }
+        if (currentSignature != awaitingBaseline) {
             _uiState.value = _uiState.value.copy(isWaitingForReply = false)
             if (shouldPlayCompletion) {
                 shouldPlayCompletion = false
@@ -290,7 +292,7 @@ class DetailViewModel(
     }
 
     fun setModelKey(key: String) {
-        _uiState.value = _uiState.value.copy(selectedModelKey = key)
+        _uiState.value = _uiState.value.copy(selectedModelKey = key, showAiSheet = false)
         viewModelScope.launch { app.preferences.saveModelKey(key) }
     }
 
@@ -330,7 +332,9 @@ class DetailViewModel(
         val currentMessages = state.messages
         val baseline = currentMessages
             .filter { it.info.role != "user" }
-            .joinToString("|") { "${it.info.id}:${extractText(it).length}" }
+            .map { it to extractText(it) }
+            .filter { it.second.isNotEmpty() }
+            .joinToString("|") { "${it.first.info.id}:${it.second.length}" }
         awaitingBaseline = baseline
         shouldPlayCompletion = true
 
@@ -346,7 +350,7 @@ class DetailViewModel(
             try {
                 val config = getConfig()
                 val dir = state.sessionDirectory.ifBlank { null }
-                app.apiClient.sendPrompt(config, sessionId, text, dir, state.activeModel, state.activeAgent?.id)
+                app.apiClient.sendPrompt(config, sessionId, text, dir, state.activeModel, state.activeAgentId)
                 loadSessionData(sessionId, state.sessionDirectory)
                 _uiState.value = _uiState.value.copy(
                     isSending = false,
@@ -399,7 +403,9 @@ class DetailViewModel(
         val optimisticMsg = createOptimisticUserMessage(sessionId, text)
         val baseline = state.messages
             .filter { it.info.role != "user" }
-            .joinToString("|") { "${it.info.id}:${extractText(it).length}" }
+            .map { it to extractText(it) }
+            .filter { it.second.isNotEmpty() }
+            .joinToString("|") { "${it.first.info.id}:${it.second.length}" }
         awaitingBaseline = baseline
         shouldPlayCompletion = true
 
@@ -415,7 +421,7 @@ class DetailViewModel(
             try {
                 val config = getConfig()
                 val dir = state.sessionDirectory.ifBlank { null }
-                app.apiClient.sendCommand(config, sessionId, command, args, dir, state.activeModel, state.activeAgent?.id)
+                app.apiClient.sendCommand(config, sessionId, command, args, dir, state.activeModel, state.activeAgentId)
                 loadSessionData(sessionId, state.sessionDirectory)
                 _uiState.value = _uiState.value.copy(
                     isSending = false,

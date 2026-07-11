@@ -139,8 +139,8 @@ data class MessageEnvelope(
 data class TodoItem(
     val content: String,
     val status: String,
-    val priority: String,
-    val id: String
+    val priority: String = "",
+    val id: String = ""
 )
 
 @Serializable

@@ -79,6 +79,7 @@
     <string name="detail_no_messages">尚無訊息。傳送提示以開始。</string>
     <string name="detail_ai_chip">AI</string>
     <string name="detail_details_chip">詳情</string>
+    <string name="detail_model_loading">載入模型中…</string>
     <string name="detail_typing">思考中…</string>
 
     <!-- AI sheet -->

@@ -28,7 +28,7 @@ class ApiClient(
 
     private val client: OkHttpClient by lazy {
         val loggingInterceptor = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BASIC
+            level = HttpLoggingInterceptor.Level.BODY
         }
         OkHttpClient.Builder()
             .addInterceptor(authInterceptor)

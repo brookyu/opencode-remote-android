@@ -8,11 +8,22 @@ import ai.opencode.remote.formatTime
 import ai.opencode.remote.normalizeMessageMarkdown
 import ai.opencode.remote.viewmodel.DetailUiState
 import ai.opencode.remote.viewmodel.SessionsUiState
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.keyframes
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -29,11 +40,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import com.mikepenz.markdown.m3.Markdown
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -57,7 +71,6 @@ fun DetailScreen(
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
 
-    // Auto-scroll to bottom when new messages arrive
     LaunchedEffect(state.renderedMessages.size, state.showTypingBubble) {
         if (state.renderedMessages.isNotEmpty()) {
             val target = state.renderedMessages.size - 1
@@ -116,14 +129,14 @@ fun DetailScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // Context strip
+            val stripScroll = rememberScrollState()
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .horizontalScroll(stripScroll)
                     .padding(horizontal = 12.dp, vertical = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // AI chip
                 AssistChip(
                     onClick = onShowAiSheet,
                     label = {
@@ -142,7 +155,18 @@ fun DetailScreen(
                     }
                 )
 
-                // Details chip
+                AssistChip(
+                    onClick = onShowAiSheet,
+                    label = {
+                        Text(
+                            state.activeModelOption?.let { "${it.providerName} / ${it.modelName}" }
+                                ?: stringResource(R.string.detail_model_loading),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                )
+
                 AssistChip(
                     onClick = onShowDetailsSheet,
                     label = {
@@ -161,12 +185,9 @@ fun DetailScreen(
                     }
                 )
 
-                // Status pill
-                Spacer(Modifier.weight(1f))
                 StatusBadge(state.sessionStatus)
             }
 
-            // Error banner
             state.error?.let { err ->
                 Snackbar(
                     modifier = Modifier.padding(4.dp),
@@ -174,7 +195,6 @@ fun DetailScreen(
                 ) { Text(err) }
             }
 
-            // Todos (collapsible)
             if (state.todos.isNotEmpty()) {
                 TodoSection(
                     todos = state.todos,
@@ -183,7 +203,6 @@ fun DetailScreen(
                 )
             }
 
-            // Messages list
             if (state.renderedMessages.isEmpty() && !state.isLoading && !state.showTypingBubble) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -216,7 +235,6 @@ fun DetailScreen(
         }
     }
 
-    // AI Sheet
     if (state.showAiSheet) {
         ModalBottomSheet(onDismissRequest = onHideAiSheet) {
             AiSheetContent(
@@ -228,7 +246,6 @@ fun DetailScreen(
         }
     }
 
-    // Details Sheet
     if (state.showDetailsSheet) {
         ModalBottomSheet(onDismissRequest = onHideDetailsSheet) {
             DetailsSheetContent(state = state)
@@ -245,8 +262,19 @@ private fun StatusBadge(status: String) {
         "error" -> MaterialTheme.colorScheme.error
         else -> MaterialTheme.colorScheme.outline
     }
+    val pulseTransition = rememberInfiniteTransition(label = "status_pulse")
+    val pulse by pulseTransition.animateFloat(
+        initialValue = 0.4f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulse_alpha"
+    )
+    val bgAlpha = if (status == "busy") 0.10f + 0.18f * pulse else 0.15f
     Surface(
-        color = color.copy(alpha = 0.15f),
+        color = color.copy(alpha = bgAlpha),
         shape = RoundedCornerShape(50)
     ) {
         Text(
@@ -273,7 +301,7 @@ private fun TodoSection(
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 2.dp),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-        shape = RoundedCornerShape(8.dp)
+        shape = RoundedCornerShape(12.dp)
     ) {
         Column {
             Row(
@@ -345,51 +373,101 @@ private fun MessageBubble(role: String, text: String) {
     val bgColor = if (isUser) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
     val fgColor = if (isUser) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
     val alignment = if (isUser) Alignment.End else Alignment.Start
+    val label = if (isUser) "You" else "OpenCode"
 
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = alignment
     ) {
+        Text(
+            label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 2.dp)
+        )
         Surface(
             color = bgColor,
             shape = RoundedCornerShape(
-                topStart = 12.dp,
-                topEnd = 12.dp,
-                bottomStart = if (isUser) 12.dp else 4.dp,
-                bottomEnd = if (isUser) 4.dp else 12.dp
+                topStart = 16.dp,
+                topEnd = 16.dp,
+                bottomStart = if (isUser) 16.dp else 4.dp,
+                bottomEnd = if (isUser) 4.dp else 16.dp
             ),
-            modifier = Modifier.widthIn(max = 320.dp)
+            modifier = Modifier.widthIn(max = 340.dp)
         ) {
-            Text(
-                normalizeMessageMarkdown(text),
-                modifier = Modifier.padding(10.dp),
-                style = MaterialTheme.typography.bodyMedium,
-                color = fgColor
-            )
+            if (isUser) {
+                Text(
+                    normalizeMessageMarkdown(text),
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = fgColor
+                )
+            } else {
+                Markdown(
+                    content = text,
+                    modifier = Modifier
+                        .padding(horizontal = 12.dp, vertical = 10.dp)
+                        .widthIn(max = 340.dp)
+                )
+            }
         }
     }
 }
 
 @Composable
 private fun TypingIndicator() {
+    val transition = rememberInfiniteTransition(label = "typing")
+    val dots = (0..2).map { index ->
+        transition.animateFloat(
+            initialValue = 0.3f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = keyframes {
+                    durationMillis = 1200
+                    0.3f at 0 with LinearEasing
+                    1f at (index * 200) with LinearEasing
+                    1f at (index * 200 + 250) with LinearEasing
+                    0.3f at (index * 200 + 500) with LinearEasing
+                    0.3f at 1200 with LinearEasing
+                },
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "dot_$index"
+        )
+    }
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.Start
     ) {
         Surface(
             color = MaterialTheme.colorScheme.surfaceVariant,
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Text(
-                stringResource(R.string.detail_typing),
-                modifier = Modifier.padding(10.dp),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+            shape = RoundedCornerShape(
+                topStart = 16.dp,
+                topEnd = 16.dp,
+                bottomStart = 4.dp,
+                bottomEnd = 16.dp
             )
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                dots.forEach { anim ->
+                    val v = anim.value
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .scale(0.6f + 0.4f * v)
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = v), CircleShape)
+                    )
+                }
+            }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ComposerBar(
     text: String,
@@ -401,35 +479,49 @@ private fun ComposerBar(
         tonalElevation = 2.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
-        Row(
+        Surface(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(8.dp),
-            verticalAlignment = Alignment.Bottom
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
         ) {
-            OutlinedTextField(
-                value = text,
-                onValueChange = onChange,
-                modifier = Modifier.weight(1f),
-                placeholder = { Text(stringResource(R.string.detail_composer_hint)) },
-                maxLines = 5,
-                keyboardOptions = KeyboardOptions.Default
-            )
-            Spacer(Modifier.width(8.dp))
-            if (isWorking) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.Bottom
+            ) {
+                TextField(
+                    value = text,
+                    onValueChange = onChange,
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(vertical = 4.dp),
+                    placeholder = { Text(stringResource(R.string.detail_composer_hint)) },
+                    maxLines = 5,
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        disabledContainerColor = Color.Transparent,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                        disabledIndicatorColor = Color.Transparent
+                    ),
+                    keyboardOptions = KeyboardOptions.Default
+                )
+                Spacer(Modifier.width(4.dp))
                 FloatingActionButton(
                     onClick = onSend,
-                    containerColor = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(48.dp)
+                    shape = CircleShape,
+                    containerColor = if (isWorking) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                    contentColor = if (isWorking) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(44.dp)
                 ) {
-                    Icon(Icons.Filled.Stop, contentDescription = stringResource(R.string.detail_stop))
-                }
-            } else {
-                FloatingActionButton(
-                    onClick = onSend,
-                    modifier = Modifier.size(48.dp)
-                ) {
-                    Icon(Icons.Filled.Send, contentDescription = stringResource(R.string.detail_send))
+                    Icon(
+                        if (isWorking) Icons.Filled.Stop else Icons.Filled.Send,
+                        contentDescription = if (isWorking) stringResource(R.string.detail_stop) else stringResource(R.string.detail_send)
+                    )
                 }
             }
         }
@@ -456,7 +548,6 @@ private fun AiSheetContent(
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
-        // Agent section
         Text(
             stringResource(R.string.ai_sheet_agent),
             style = MaterialTheme.typography.labelLarge,
@@ -488,7 +579,6 @@ private fun AiSheetContent(
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
-        // Model section
         Text(
             stringResource(R.string.ai_sheet_model),
             style = MaterialTheme.typography.labelLarge,
@@ -526,7 +616,7 @@ private fun AiSheetContent(
                     Surface(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
+                            .clip(RoundedCornerShape(12.dp))
                             .clickable {
                                 onModelKeyChange(
                                     listOf(
@@ -538,7 +628,7 @@ private fun AiSheetContent(
                             },
                         color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
                     ) {
-                        Column(modifier = Modifier.padding(10.dp)) {
+                        Column(modifier = Modifier.padding(12.dp)) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically
@@ -591,7 +681,6 @@ private fun DetailsSheetContent(state: DetailUiState) {
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
-        // Project info
         Text(
             stringResource(R.string.details_project),
             style = MaterialTheme.typography.labelLarge,
@@ -616,7 +705,6 @@ private fun DetailsSheetContent(state: DetailUiState) {
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
-        // VCS info
         Text(
             stringResource(R.string.details_vcs),
             style = MaterialTheme.typography.labelLarge,
@@ -644,7 +732,6 @@ private fun DetailsSheetContent(state: DetailUiState) {
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
-        // File statuses
         Text(
             stringResource(R.string.details_files),
             style = MaterialTheme.typography.labelLarge,
@@ -669,7 +756,6 @@ private fun DetailsSheetContent(state: DetailUiState) {
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
-        // Diff
         Text(
             stringResource(R.string.details_diff),
             style = MaterialTheme.typography.labelLarge,

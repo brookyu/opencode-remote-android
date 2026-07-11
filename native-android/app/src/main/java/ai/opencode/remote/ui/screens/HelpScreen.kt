@@ -6,6 +6,9 @@ import ai.opencode.remote.viewmodel.SessionsUiState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -68,10 +71,16 @@ private fun InfoContent(text: String) {
         contentPadding = PaddingValues(16.dp)
     ) {
         item {
-            Text(
-                text = text,
-                style = MaterialTheme.typography.bodyMedium
-            )
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
         }
     }
 }
@@ -85,11 +94,28 @@ private fun CommandsTab(
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
-        // Filter chips
-        Row(
+        OutlinedTextField(
+            value = state.commandSearch,
+            onValueChange = onCommandSearchChange,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 8.dp),
+            placeholder = { Text(stringResource(R.string.help_filter_placeholder)) },
+            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+            singleLine = true,
+            trailingIcon = {
+                if (state.commandSearch.isNotEmpty()) {
+                    IconButton(onClick = { onCommandSearchChange("") }) {
+                        Icon(Icons.Filled.Clear, contentDescription = null)
+                    }
+                }
+            }
+        )
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             FilterChip(
@@ -104,18 +130,9 @@ private fun CommandsTab(
             )
         }
 
-        // Search field
-        OutlinedTextField(
-            value = state.commandSearch,
-            onValueChange = onCommandSearchChange,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 4.dp),
-            placeholder = { Text(stringResource(R.string.help_filter_placeholder)) },
-            singleLine = true
-        )
+        val skillCommands = state.filteredCommands.filter { it.source == "skill" }
+        val otherCommands = state.filteredCommands.filterNot { it.source == "skill" }
 
-        // Commands list
         if (state.filteredCommands.isEmpty()) {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -133,8 +150,21 @@ private fun CommandsTab(
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(state.filteredCommands, key = { it.name }) { cmd ->
-                    CommandCard(cmd)
+                if (otherCommands.isNotEmpty()) {
+                    item(key = "header-commands") {
+                        SectionHeader(stringResource(R.string.help_tab_commands))
+                    }
+                    items(otherCommands, key = { "cmd-${it.name}" }) { cmd ->
+                        CommandCard(cmd)
+                    }
+                }
+                if (skillCommands.isNotEmpty()) {
+                    item(key = "header-skills") {
+                        SectionHeader(stringResource(R.string.help_filter_skills))
+                    }
+                    items(skillCommands, key = { "skill-${it.name}" }) { cmd ->
+                        CommandCard(cmd)
+                    }
                 }
             }
         }
@@ -142,17 +172,33 @@ private fun CommandsTab(
 }
 
 @Composable
+private fun SectionHeader(title: String) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 4.dp, bottom = 2.dp)
+    )
+}
+
+@Composable
 private fun CommandCard(cmd: CommandInfo) {
-    Card(
+    ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 1.dp)
     ) {
         Column(
-            modifier = Modifier.padding(12.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
                     "/${cmd.name}",
@@ -164,13 +210,11 @@ private fun CommandCard(cmd: CommandInfo) {
                     AssistChip(onClick = {}, label = { Text(stringResource(R.string.help_filter_skills)) })
                 }
             }
-            val description = cmd.description
-            if (!description.isNullOrBlank()) {
+            cmd.description?.takeIf { it.isNotBlank() }?.let { desc ->
                 Text(
-                    description!!,
+                    desc,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 4.dp)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
