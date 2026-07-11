@@ -23,6 +23,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -73,6 +74,7 @@ fun DetailScreen(
     onHideAiSheet: () -> Unit,
     onShowDetailsSheet: () -> Unit,
     onHideDetailsSheet: () -> Unit,
+    onCommandOptionClick: (CommandInfo) -> Unit,
     onErrorDismiss: () -> Unit
 ) {
     val listState = rememberLazyListState()
@@ -123,13 +125,25 @@ fun DetailScreen(
             )
         },
         bottomBar = {
-            ComposerBar(
-                text = state.composerText,
-                onChange = onComposerChange,
-                onSend = onSend,
-                isWorking = state.isWorking,
-                modifier = Modifier.imePadding()
-            )
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .imePadding(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                if (state.showCommandOptions) {
+                    CommandOptionsDropdown(
+                        options = state.commandOptions,
+                        onOptionClick = onCommandOptionClick
+                    )
+                }
+                ComposerBar(
+                    text = state.composerText,
+                    onChange = onComposerChange,
+                    onSend = onSend,
+                    isWorking = state.isWorking
+                )
+            }
         }
     ) { padding ->
         Column(
@@ -886,5 +900,56 @@ private fun DetailsSheetContent(state: DetailUiState) {
         }
 
         Spacer(Modifier.height(32.dp))
+    }
+}
+
+@Composable
+private fun CommandOptionsDropdown(
+    options: List<CommandInfo>,
+    onOptionClick: (CommandInfo) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        tonalElevation = 6.dp,
+        shadowElevation = 8.dp,
+        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+        color = MaterialTheme.colorScheme.surface,
+        modifier = modifier
+            .widthIn(max = 720.dp)
+            .fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = 240.dp)
+                .verticalScroll(rememberScrollState())
+                .padding(vertical = 8.dp)
+        ) {
+            options.forEach { command ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onOptionClick(command) }
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "/${command.name}",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.widthIn(min = 100.dp)
+                    )
+                    Spacer(Modifier.width(16.dp))
+                    Text(
+                        text = command.description ?: "",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+        }
     }
 }

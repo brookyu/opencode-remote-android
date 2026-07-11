@@ -39,7 +39,9 @@ data class DetailUiState(
     val todosExpanded: Boolean = false,
     val showAiSheet: Boolean = false,
     val showDetailsSheet: Boolean = false,
-    val modelQuery: String = ""
+    val modelQuery: String = "",
+    val commandOptions: List<CommandInfo> = emptyList(),
+    val showCommandOptions: Boolean = false
 ) {
     val isWorking: Boolean
         get() = isWaitingForReply || isSending || sessionStatus == "busy" || sessionStatus == "retry"
@@ -287,8 +289,60 @@ class DetailViewModel(
         }
     }
 
+    private var cachedCommands: List<CommandInfo>? = null
+    private var lastCommandsFetchTime: Long = 0
+    private var isFetchingCommands = false
+
+    private fun checkAndLoadCommands() {
+        if (isFetchingCommands) return
+        val now = System.currentTimeMillis()
+        if (cachedCommands != null && now - lastCommandsFetchTime < 5 * 60 * 1000) {
+            return
+        }
+        isFetchingCommands = true
+        viewModelScope.launch {
+            try {
+                val config = getConfig()
+                if (config.host.isNotBlank() && config.port > 0) {
+                    val cmds = app.apiClient.listCommands(config)
+                    cachedCommands = cmds
+                    lastCommandsFetchTime = System.currentTimeMillis()
+                    updateFilteredCommands(_uiState.value.composerText)
+                }
+            } catch (e: Exception) {
+                // Ignore
+            } finally {
+                isFetchingCommands = false
+            }
+        }
+    }
+
+    private fun updateFilteredCommands(text: String) {
+        if (text.startsWith("/") && !text.contains(" ")) {
+            val query = text.removePrefix("/").lowercase()
+            checkAndLoadCommands()
+            val filtered = (cachedCommands ?: emptyList()).filter {
+                it.name.lowercase().startsWith(query)
+            }
+            _uiState.value = _uiState.value.copy(
+                commandOptions = filtered,
+                showCommandOptions = filtered.isNotEmpty()
+            )
+        } else {
+            _uiState.value = _uiState.value.copy(
+                showCommandOptions = false
+            )
+        }
+    }
+
+    fun selectCommandOption(command: CommandInfo) {
+        val newText = "/${command.name} "
+        updateComposer(newText)
+    }
+
     fun updateComposer(text: String) {
         _uiState.value = _uiState.value.copy(composerText = text)
+        updateFilteredCommands(text)
     }
 
     fun setModelKey(key: String) {

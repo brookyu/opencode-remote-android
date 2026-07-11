@@ -153,6 +153,7 @@ fun AppNavigation() {
                             onHideAiSheet = { detailViewModel.showAiSheet(false) },
                             onShowDetailsSheet = { detailViewModel.showDetailsSheet(true) },
                             onHideDetailsSheet = { detailViewModel.showDetailsSheet(false) },
+                            onCommandOptionClick = detailViewModel::selectCommandOption,
                             onErrorDismiss = detailViewModel::clearError
                         )
                     }
