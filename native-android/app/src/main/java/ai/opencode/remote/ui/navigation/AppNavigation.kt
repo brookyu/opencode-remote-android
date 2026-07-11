@@ -78,7 +78,7 @@ fun AppNavigation() {
     }
 
     LaunchedEffect(hasServer, selectedTab) {
-        if (hasServer && selectedTab != Tab.Detail) {
+        if (hasServer && selectedTab == Tab.Sessions) {
             sessionsViewModel.startPolling()
         } else {
             sessionsViewModel.stopPolling()
