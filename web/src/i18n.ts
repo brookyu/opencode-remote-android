@@ -132,6 +132,8 @@ type TranslationKey =
   | 'todo.title'
   | 'todo.hide'
   | 'todo.show'
+  | 'files.title'
+  | 'file.openError'
   | 'session.deleteTitle'
   | 'session.deleteBodyPrefix'
   | 'session.cancel'
@@ -276,6 +278,8 @@ const translations: Record<LanguageCode, Record<TranslationKey, string>> = {
     'todo.title': 'Todo Items',
     'todo.hide': 'Hide',
     'todo.show': 'Show',
+    'files.title': 'Files',
+    'file.openError': 'Could not open file',
     'session.deleteTitle': 'Delete session?',
     'session.deleteBodyPrefix': 'This will permanently delete',
     'session.cancel': 'Cancel',
@@ -419,6 +423,8 @@ const translations: Record<LanguageCode, Record<TranslationKey, string>> = {
     'todo.title': 'Todo',
     'todo.hide': 'Nascondi',
     'todo.show': 'Mostra',
+    'files.title': 'File',
+    'file.openError': 'Impossibile aprire il file',
     'session.deleteTitle': 'Eliminare la sessione?',
     'session.deleteBodyPrefix': 'Questo eliminerà definitivamente',
     'session.cancel': 'Annulla',
@@ -562,6 +568,8 @@ const translations: Record<LanguageCode, Record<TranslationKey, string>> = {
     'todo.title': '待辦事項',
     'todo.hide': '隱藏',
     'todo.show': '顯示',
+    'files.title': '檔案',
+    'file.openError': '無法開啟檔案',
     'session.deleteTitle': '刪除工作階段？',
     'session.deleteBodyPrefix': '這會永久刪除',
     'session.cancel': '取消',

@@ -139,4 +139,6 @@
     <string name="close">Close</string>
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>
+    <string name="files_title">Files</string>
+    <string name="file_open_error">Could not open file</string>
 </resources>

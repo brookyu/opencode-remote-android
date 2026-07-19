@@ -138,4 +138,6 @@
     <string name="close">Chiudi</string>
     <string name="ok">OK</string>
     <string name="cancel">Annulla</string>
+    <string name="files_title">File</string>
+    <string name="file_open_error">Impossibile aprire il file</string>
 </resources>

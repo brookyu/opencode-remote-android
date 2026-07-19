@@ -117,6 +117,21 @@ fun normalizeMessageMarkdown(text: String): String {
     return if (text.contains("\n")) text else text.replace(Regex("\\s-\\s(?=\\S)"), "\n- ")
 }
 
+// --- Markdown artifact detection (keep in parity with web App.tsx) ---
+
+fun isMarkdownFilePath(path: String): Boolean {
+    return Regex("""\.(md|markdown|mdx)$""", RegexOption.IGNORE_CASE).containsMatchIn(path)
+}
+
+private val markdownPathPattern = Regex(
+    """[\w.@~+\-]+(?:[/\\][\w.@~+\-]+)*\.(?:md|markdown|mdx)\b""",
+    RegexOption.IGNORE_CASE
+)
+
+fun extractMarkdownFilePaths(text: String): List<String> {
+    return markdownPathPattern.findAll(text).map { it.value }.distinct().toList()
+}
+
 fun parentDirectory(path: String): String? {
     if (path.isEmpty() || path == "/") return null
     val normalized = path.replace(Regex("[/\\\\]+$"), "")

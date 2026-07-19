@@ -154,6 +154,8 @@ fun AppNavigation() {
                             onShowDetailsSheet = { detailViewModel.showDetailsSheet(true) },
                             onHideDetailsSheet = { detailViewModel.showDetailsSheet(false) },
                             onCommandOptionClick = detailViewModel::selectCommandOption,
+                            onOpenFile = detailViewModel::openFile,
+                            onCloseFileViewer = detailViewModel::closeFileViewer,
                             onErrorDismiss = detailViewModel::clearError
                         )
                     }

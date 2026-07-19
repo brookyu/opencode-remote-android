@@ -139,6 +139,7 @@ The app is not limited to LAN. You can also use it over WAN/VPN if your network 
 - `/session`, `/session/status`, `/session/:id`
 - `/session/:id/message`, `/session/:id/command`, `/session/:id/abort`
 - `/session/:id/todo`, `/session/:id/diff`
+- `/file`, `/file/content`
 
 ## Contributors
 

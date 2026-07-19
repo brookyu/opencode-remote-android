@@ -167,6 +167,11 @@ data class FileEntry(
 )
 
 @Serializable
+data class FileContent(
+    val content: String = ""
+)
+
+@Serializable
 data class PathInfo(
     val home: String = "",
     val state: String = "",

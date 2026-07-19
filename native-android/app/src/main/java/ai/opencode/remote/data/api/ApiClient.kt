@@ -189,6 +189,11 @@ class ApiClient(
         api().listFiles(path, directory)
     }
 
+    suspend fun getFileContent(config: ServerConfig, path: String, directory: String? = null): FileContent = withContext(Dispatchers.IO) {
+        configure(config.host, config.port, config.username, config.password)
+        api().getFileContent(path, directory)
+    }
+
     suspend fun loadProjectCurrent(config: ServerConfig, directory: String? = null): ProjectCurrent = withContext(Dispatchers.IO) {
         configure(config.host, config.port, config.username, config.password)
         api().loadProjectCurrent(directory)

@@ -58,6 +58,22 @@ function normalizeMessageMarkdown(text: string): string {
   return text.includes("\n") ? text : text.replace(/\s-\s(?=\S)/g, "\n- ")
 }
 
+// --- Markdown artifact detection (keep in parity with native I18n.kt) ---
+
+function isMarkdownFilePath(path: string): boolean {
+  return /\.(md|markdown|mdx)$/i.test(path)
+}
+
+const markdownPathPattern = /[\w.@~+\-]+(?:[/\\][\w.@~+\-]+)*\.(?:md|markdown|mdx)\b/gi
+
+function extractMarkdownFilePaths(text: string): string[] {
+  return [...new Set(text.match(markdownPathPattern) ?? [])]
+}
+
+function fileBaseName(path: string): string {
+  return path.split(/[/\\]/).pop() ?? path
+}
+
 function toFileStatusList(input: FileStatusEntry[] | Record<string, FileStatusEntry>): FileStatusEntry[] {
   if (Array.isArray(input)) return input
   return Object.entries(input).map(([path, value]) => ({ path, ...value }))
@@ -254,6 +270,7 @@ function App() {
   const [optimisticUserMessages, setOptimisticUserMessages] = useState<MessageEnvelope[]>([])
   const [todos, setTodos] = useState<TodoItem[]>([])
   const [diffFiles, setDiffFiles] = useState<DiffFile[]>([])
+  const [fileViewer, setFileViewer] = useState<{ path: string; content: string; loading: boolean; error: string | null } | null>(null)
 
   const [projectDashboard, setProjectDashboard] = useState<ProjectDashboard | null>(null)
 
@@ -384,6 +401,10 @@ function App() {
   ).length
   const totalDiffAdditions = diffFiles.reduce((sum, file) => sum + file.additions, 0)
   const totalDiffDeletions = diffFiles.reduce((sum, file) => sum + file.deletions, 0)
+  const markdownFiles = useMemo(
+    () => [...new Set(diffFiles.map((file) => file.file).filter(isMarkdownFilePath))],
+    [diffFiles]
+  )
   const showModelChip = modelOptions.length > 1 || Boolean(activeModelOption) || primaryAgentOptions.length > 0
 
   async function openSession(sessionID: string, directory: string) {
@@ -595,6 +616,18 @@ function App() {
   function changeAgent(nextAgentID: string) {
     setSelectedAgentID(nextAgentID)
     localStorage.setItem(AGENT_STORAGE_KEY, nextAgentID)
+  }
+
+  async function openFile(path: string) {
+    const directory = selectedSession?.directory
+    setFileViewer({ path, content: "", loading: true, error: null })
+    try {
+      const file = await api.getFileContent(config, path, directory)
+      setFileViewer((current) => current?.path === path ? { path, content: file.content, loading: false, error: null } : current)
+    } catch (err) {
+      const message = (err as Error).message
+      setFileViewer((current) => current?.path === path ? { path, content: "", loading: false, error: message } : current)
+    }
   }
 
   async function loadSelected(sessionID: string, directory: string) {
@@ -1316,6 +1349,39 @@ function App() {
         </div>
       )}
 
+      {fileViewer && (
+        <div className="modal-backdrop" role="presentation" onClick={() => setFileViewer(null)}>
+          <section
+            className="modal-card file-viewer fade-in"
+            role="dialog"
+            aria-modal="true"
+            aria-label={fileViewer.path}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <header className="file-viewer-header">
+              <div className="file-viewer-title">
+                <strong>📄 {fileBaseName(fileViewer.path)}</strong>
+                <span className="subtle">{fileViewer.path}</span>
+              </div>
+              <button type="button" className="btn-secondary" onClick={() => setFileViewer(null)}>
+                {t('session.cancel')}
+              </button>
+            </header>
+            <div className="file-viewer-body message-content">
+              {fileViewer.loading ? (
+                <div className="empty-state compact"><LoadingIcon size={28} /><p>{t('detail.loading')}</p></div>
+              ) : fileViewer.error ? (
+                <div className="error">✗ {t('file.openError')}: {fileViewer.error}</div>
+              ) : (
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {fileViewer.content}
+                </ReactMarkdown>
+              )}
+            </div>
+          </section>
+        </div>
+      )}
+
       {view === "detail" && (
         <main className="panel detail fade-in">
           <div className="detail-topbar">
@@ -1360,6 +1426,17 @@ function App() {
                 <span>{t('detail.detailsChip')}</span>
                 <strong>{projectName || t('detail.projectLabel')}</strong>
               </button>
+            </section>
+          )}
+
+          {markdownFiles.length > 0 && (
+            <section className="session-context-strip" aria-label={t('files.title')}>
+              <span className="files-strip-label">{t('files.title')}</span>
+              {markdownFiles.map((path) => (
+                <button key={path} type="button" className="context-chip ghost" title={path} onClick={() => openFile(path).catch(() => undefined)}>
+                  <strong>📄 {fileBaseName(path)}</strong>
+                </button>
+              ))}
             </section>
           )}
 
@@ -1410,7 +1487,9 @@ function App() {
               </div>
             ) : (
               <>
-                {renderedMessages.map((message) => (
+                {renderedMessages.map((message) => {
+                  const artifacts = message.info.role === "user" ? [] : extractMarkdownFilePaths(message.text)
+                  return (
                   <article key={message.info.id} className={`message ${message.info.role} fade-in`}>
                     <header>
                       <strong>
@@ -1423,8 +1502,18 @@ function App() {
                         {normalizeMessageMarkdown(message.text)}
                       </ReactMarkdown>
                     </div>
+                    {artifacts.length > 0 && (
+                      <div className="message-artifacts">
+                        {artifacts.map((path) => (
+                          <button key={path} type="button" className="artifact-chip" title={path} onClick={() => openFile(path).catch(() => undefined)}>
+                            📄 {fileBaseName(path)}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </article>
-                ))}
+                  )
+                })}
                 {showTypingBubble && (
                   <article className="message assistant typing-bubble fade-in" aria-label={t('detail.waiting')}>
                     <div className="typing-dots" aria-hidden="true">

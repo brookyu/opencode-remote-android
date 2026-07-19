@@ -101,6 +101,12 @@ interface OpenCodeApi {
         @Query("directory") directory: String? = null
     ): List<FileEntry>
 
+    @GET("file/content")
+    suspend fun getFileContent(
+        @Query("path") path: String,
+        @Query("directory") directory: String? = null
+    ): FileContent
+
     @GET("project/current")
     suspend fun loadProjectCurrent(
         @Query("directory") directory: String? = null

@@ -3,6 +3,7 @@ package ai.opencode.remote.viewmodel
 import ai.opencode.remote.OpenCodeApp
 import ai.opencode.remote.data.models.*
 import ai.opencode.remote.extractText
+import ai.opencode.remote.isMarkdownFilePath
 import ai.opencode.remote.modelFromKey
 import ai.opencode.remote.modelKey
 import ai.opencode.remote.sameModel
@@ -41,7 +42,11 @@ data class DetailUiState(
     val showDetailsSheet: Boolean = false,
     val modelQuery: String = "",
     val commandOptions: List<CommandInfo> = emptyList(),
-    val showCommandOptions: Boolean = false
+    val showCommandOptions: Boolean = false,
+    val fileViewerPath: String? = null,
+    val fileViewerContent: String = "",
+    val fileViewerLoading: Boolean = false,
+    val fileViewerError: String? = null
 ) {
     val isWorking: Boolean
         get() = isWaitingForReply || isSending || sessionStatus == "busy" || sessionStatus == "retry"
@@ -95,6 +100,9 @@ data class DetailUiState(
 
     val totalDiffDeletions: Int
         get() = diffFiles.sumOf { it.deletions }
+
+    val markdownFiles: List<String>
+        get() = diffFiles.map { it.file }.filter { isMarkdownFilePath(it) }.distinct()
 }
 
 class DetailViewModel(
@@ -513,6 +521,46 @@ class DetailViewModel(
 
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
+    }
+
+    fun openFile(path: String) {
+        val state = _uiState.value
+        _uiState.value = state.copy(
+            fileViewerPath = path,
+            fileViewerContent = "",
+            fileViewerLoading = true,
+            fileViewerError = null
+        )
+        viewModelScope.launch {
+            try {
+                val config = getConfig()
+                val dir = state.sessionDirectory.ifBlank { null }
+                val content = app.apiClient.getFileContent(config, path, dir)
+                if (_uiState.value.fileViewerPath == path) {
+                    _uiState.value = _uiState.value.copy(
+                        fileViewerContent = content.content,
+                        fileViewerLoading = false,
+                        fileViewerError = null
+                    )
+                }
+            } catch (e: Exception) {
+                if (_uiState.value.fileViewerPath == path) {
+                    _uiState.value = _uiState.value.copy(
+                        fileViewerLoading = false,
+                        fileViewerError = e.message ?: "Failed to load file"
+                    )
+                }
+            }
+        }
+    }
+
+    fun closeFileViewer() {
+        _uiState.value = _uiState.value.copy(
+            fileViewerPath = null,
+            fileViewerContent = "",
+            fileViewerLoading = false,
+            fileViewerError = null
+        )
     }
 
     private fun createOptimisticUserMessage(sessionId: String, text: String): MessageEnvelope {

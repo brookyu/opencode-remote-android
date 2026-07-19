@@ -3,6 +3,7 @@ import type {
   AgentOption,
   CommandInfo,
   DiffFile,
+  FileContent,
   FileStatusEntry,
   FileEntry,
   HealthResponse,
@@ -238,6 +239,10 @@ export const api = {
 
   listFiles(config: ServerConfig, path: string, directory?: string) {
     return request<FileEntry[]>(config, withDirectory(`/file?path=${encodeURIComponent(path)}`, directory))
+  },
+
+  getFileContent(config: ServerConfig, path: string, directory?: string) {
+    return request<FileContent>(config, withDirectory(`/file/content?path=${encodeURIComponent(path)}`, directory))
   },
 
   listCommands(config: ServerConfig) {

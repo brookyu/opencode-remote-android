@@ -98,6 +98,8 @@ Business logic is duplicated between web and native. Changing one side **must** 
 | `normalizeModelKey`, `sameModel` | `App.tsx` lines 100-112 | `I18n.kt` lines 78-84 |
 | `extractText` | `App.tsx` lines 43-49 | `I18n.kt` lines 100-114 (native also handles `info.error`) |
 | `normalizeMessageMarkdown` | `App.tsx` line 57-59 | `I18n.kt` lines 116-118 |
+| `isMarkdownFilePath`, `extractMarkdownFilePaths` | `App.tsx` lines 63-75 | `I18n.kt` lines 122-133 |
+| Markdown file viewer (`openFile`/close, viewer dialog) | `App.tsx` `fileViewer` state + `openFile()` + `.file-viewer` modal | `DetailViewModel.kt` `openFile`/`closeFileViewer` + `DetailScreen.kt` `FileViewerDialog` |
 | `parentDirectory` | `App.tsx` lines 693-699 | `I18n.kt` lines 120-129 |
 | `formatLimit` | `App.tsx` lines 149-154 | `I18n.kt` lines 91-98 |
 | `formatTime` | `App.tsx` lines 38-41 | `I18n.kt` lines 86-89 |
