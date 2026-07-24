@@ -10,6 +10,7 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import okhttp3.MediaType.Companion.toMediaType
+import java.net.URLEncoder
 
 class ApiClient(
     private val authInterceptor: AuthInterceptor = AuthInterceptor()
@@ -116,6 +117,12 @@ class ApiClient(
         api().createSession(CreateSessionRequest(title = title, model = modelBody), directory)
     }
 
+    suspend fun updateSession(config: ServerConfig, sessionId: String, title: String? = null, model: ModelSelection? = null, directory: String? = null): Session = withContext(Dispatchers.IO) {
+        configure(config.host, config.port, config.username, config.password)
+        val modelBody = model?.let { CreateSessionModel(providerID = it.providerID, id = it.modelID, variant = it.variant) }
+        api().updateSession(sessionId, CreateSessionRequest(title = title, model = modelBody), directory)
+    }
+
     suspend fun deleteSession(config: ServerConfig, sessionId: String, directory: String? = null) = withContext(Dispatchers.IO) {
         configure(config.host, config.port, config.username, config.password)
         api().deleteSession(sessionId, directory)
@@ -189,11 +196,6 @@ class ApiClient(
         api().listFiles(path, directory)
     }
 
-    suspend fun getFileContent(config: ServerConfig, path: String, directory: String? = null): FileContent = withContext(Dispatchers.IO) {
-        configure(config.host, config.port, config.username, config.password)
-        api().getFileContent(path, directory)
-    }
-
     suspend fun loadProjectCurrent(config: ServerConfig, directory: String? = null): ProjectCurrent = withContext(Dispatchers.IO) {
         configure(config.host, config.port, config.username, config.password)
         api().loadProjectCurrent(directory)
@@ -207,5 +209,113 @@ class ApiClient(
     suspend fun loadFileStatus(config: ServerConfig, directory: String? = null): List<FileStatusEntry> = withContext(Dispatchers.IO) {
         configure(config.host, config.port, config.username, config.password)
         api().loadFileStatus(directory)
+    }
+
+    companion object {
+        /** Public download server URL — Aliyun nginx proxies through SSH tunnel to Mac Mini. */
+        const val FILE_SERVER_BASE = "http://124.223.197.48:3457"
+    }
+
+    /**
+     * Read a file's content from the server's filesystem.
+     *
+     * Strategies tried in order:
+     * 1. Direct HTTP GET on the OpenCode server base URL + file path
+     * 2. HTTP GET on the OpenCode server's /file?path=... endpoint
+     * 3. Fetch via the download domain using the session directory
+     */
+    suspend fun readFileContent(config: ServerConfig, filePath: String, directory: String? = null, sessionId: String? = null): String = withContext(Dispatchers.IO) {
+        configure(config.host, config.port, config.username, config.password)
+        var lastError: String? = null
+
+        val base = buildBaseUrl(config.host, config.port).trimEnd('/')
+        val dir = directory?.let { if (it.isBlank()) null else it }
+
+        // Strategy 1: Use the /file/content?path=... API endpoint
+        try {
+            val fileRes = api().readFileContent(filePath, dir)
+            val content = fileRes.content
+            if (content != null) {
+                return@withContext content
+            }
+        } catch (e: Exception) {
+            lastError = e.message ?: e.toString()
+        }
+
+        // Strategy 2: Direct HTTP GET on the server base URL + file path
+        val url1 = "$base/${filePath.trimStart('/')}"
+        val r1 = tryFetchUrl(url1)
+        if (r1 != null && !isHtmlResponse(r1)) return@withContext r1
+        if (r1 != null) lastError = "OpenCode server returned web UI"
+
+        // Strategy 3: Send a /read command via the session command API
+        if (!sessionId.isNullOrBlank()) {
+            try {
+                val cmdResp = api().sendCommand(
+                    sessionId,
+                    CommandRequest(command = "read", arguments = filePath),
+                    dir
+                )
+                val cmdText = cmdResp.parts
+                    .filter { it.type == "text" }
+                    .joinToString("\n") { it.text ?: "" }
+                if (cmdText.isNotBlank() && !isHtmlResponse(cmdText)) {
+                    val lines = cmdText.lines()
+                    val content = if (lines.size > 1 && lines.first().trimStart().startsWith("/read")) {
+                        lines.drop(1).joinToString("\n")
+                    } else {
+                        cmdText
+                    }
+                    if (content.isNotBlank()) return@withContext content.trimStart()
+                }
+            } catch (_: Exception) { }
+        }
+
+        // Strategy 4: Use the /file?path=... endpoint (server might return file content)
+        val url2 = "$base/file?path=${java.net.URLEncoder.encode(filePath, "UTF-8")}"
+        val r2 = tryFetchUrl(url2, isJsonEndpoint = true)
+        if (r2 != null && !isHtmlResponse(r2)) return@withContext r2
+
+        // Strategy 4: Try with session directory as a base path
+        if (dir != null) {
+            val url3 = "$base/${dir.trimEnd('/')}/${filePath.trimStart('/')}"
+            val r3 = tryFetchUrl(url3)
+            if (r3 != null && !isHtmlResponse(r3)) return@withContext r3
+        }
+
+        // Strategy 5: Try the download domain
+        if (dir != null) {
+            val url4 = "${FILE_SERVER_BASE}/files/${dir.trimEnd('/')}/${filePath.trimStart('/')}"
+            val r4 = tryFetchUrl(url4)
+            if (r4 != null && !isHtmlResponse(r4)) return@withContext r4
+        }
+
+        throw Exception("Cannot read file \"$filePath\" remotely. $lastError")
+    }
+
+    private suspend fun tryFetchUrl(url: String, isJsonEndpoint: Boolean = false): String? = withContext(Dispatchers.IO) {
+        try {
+            val request = okhttp3.Request.Builder()
+                .url(url)
+                .header("Accept", if (isJsonEndpoint) "application/json, text/plain, */*" else "text/plain, text/markdown, */*")
+                .build()
+            val shortClient = OkHttpClient.Builder()
+                .addInterceptor(authInterceptor)
+                .connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+                .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+                .build()
+            val response = shortClient.newCall(request).execute()
+            if (!response.isSuccessful) return@withContext null
+            response.body?.string()
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun isHtmlResponse(content: String): Boolean {
+        val trimmed = content.trim()
+        return trimmed.startsWith("<!DOCTYPE html", true) ||
+               trimmed.startsWith("<html", true) ||
+               trimmed.startsWith("<head", true)
     }
 }

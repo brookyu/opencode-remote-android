@@ -139,6 +139,21 @@
     <string name="close">Close</string>
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>
-    <string name="files_title">Files</string>
-    <string name="file_open_error">Could not open file</string>
+
+    <!-- Updates -->
+    <string name="settings_update_title">Updates</string>
+    <string name="settings_update_current">Current: v%1$s (code %2$d)</string>
+    <string name="settings_update_check">Check for Updates</string>
+    <string name="settings_update_checking">Checking for updates…</string>
+    <string name="settings_update_available">Update v%1$s available</string>
+    <string name="settings_update_download">Download</string>
+    <string name="settings_update_downloading">Downloading update…</string>
+    <string name="settings_update_ready">Download complete — install via notification</string>
+    <string name="settings_update_up_to_date">No updates available</string>
+    <string name="settings_update_skip">Skip</string>
+    <string name="settings_update_skipped">Update skipped — check again later for newer versions</string>
+    <string name="settings_update_unskip">Unskip</string>
+    <string name="settings_update_error">Update check failed</string>
+    <string name="settings_update_retry">Retry</string>
+    <string name="settings_update_dismiss">Dismiss</string>
 </resources>

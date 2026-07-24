@@ -40,7 +40,8 @@ data class SessionsUiState(
     val sessionToDelete: SessionView? = null,
     val commands: List<CommandInfo> = emptyList(),
     val commandFilter: String = "all",
-    val commandSearch: String = ""
+    val commandSearch: String = "",
+    val collapsedProjects: Set<String> = emptySet()
 ) {
     val filteredSessions: List<SessionView>
         get() {
@@ -86,12 +87,12 @@ class SessionsViewModel(
         pollingJob?.cancel()
         failureCount = 0
         initialLoad = true
-        refreshSessions(silent = true)
+        refreshSessions(silent = true, force = false)
         loadCommands()
         pollingJob = viewModelScope.launch {
             while (isActive) {
                 delay(3500)
-                refreshSessions(silent = true)
+                refreshSessions(silent = true, force = true)
             }
         }
     }
@@ -103,6 +104,12 @@ class SessionsViewModel(
 
     fun updateSearchQuery(query: String) {
         _uiState.value = _uiState.value.copy(searchQuery = query)
+    }
+
+    fun toggleProjectCollapsed(directory: String) {
+        val current = _uiState.value.collapsedProjects
+        val next = if (current.contains(directory)) current - directory else current + directory
+        _uiState.value = _uiState.value.copy(collapsedProjects = next)
     }
 
     fun setCommandFilter(filter: String) {
@@ -173,7 +180,7 @@ class SessionsViewModel(
                     isCreating = false,
                     showNewSessionPicker = false
                 )
-                refreshSessions(silent = false)
+                refreshSessions(silent = false, force = true)
                 onSuccess?.invoke(created)
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(isCreating = false, pickerError = e.message)
@@ -191,7 +198,7 @@ class SessionsViewModel(
             try {
                 app.apiClient.deleteSession(getConfig(), session.id, session.directory.ifBlank { null })
                 _uiState.value = _uiState.value.copy(sessionToDelete = null)
-                refreshSessions(silent = true)
+                refreshSessions(silent = true, force = true)
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(error = e.message, sessionToDelete = null)
             }
@@ -204,13 +211,28 @@ class SessionsViewModel(
 
     fun refreshSessionsManually() {
         _uiState.value = _uiState.value.copy(isRefreshing = true)
-        refreshSessions(silent = false)
+        refreshSessions(silent = false, force = true)
     }
 
-    private fun refreshSessions(silent: Boolean) {
+    private fun refreshSessions(silent: Boolean, force: Boolean = false) {
         viewModelScope.launch {
             val config = getConfig()
             if (config.host.isBlank() || config.port <= 0) return@launch
+
+            if (!force) {
+                val cache = cachedSessionsList
+                val timestamp = lastLoadedTimestamp
+                if (cache != null && System.currentTimeMillis() - timestamp < 2 * 60 * 60 * 1000) {
+                    _uiState.value = _uiState.value.copy(
+                        sessions = cache,
+                        connectionState = ConnectionState.CONNECTED,
+                        error = null,
+                        isRefreshing = false
+                    )
+                    initialLoad = false
+                    return@launch
+                }
+            }
 
             if (!silent) {
                 _uiState.value = _uiState.value.copy(
@@ -270,6 +292,8 @@ class SessionsViewModel(
 
                 failureCount = 0
                 initialLoad = false
+                cachedSessionsList = views
+                lastLoadedTimestamp = System.currentTimeMillis()
                 _uiState.value = _uiState.value.copy(
                     sessions = views,
                     connectionState = ConnectionState.CONNECTED,
@@ -341,5 +365,10 @@ class SessionsViewModel(
 
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
+    }
+
+    companion object {
+        private var cachedSessionsList: List<SessionView>? = null
+        private var lastLoadedTimestamp: Long = 0L
     }
 }

@@ -1,6 +1,7 @@
 package ai.opencode.remote
 
 import ai.opencode.remote.data.api.ApiClient
+import ai.opencode.remote.data.update.UpdateManager
 import ai.opencode.remote.store.Preferences
 import android.app.Application
 import android.media.AudioAttributes
@@ -16,6 +17,9 @@ class OpenCodeApp : Application() {
 
     val apiClient: ApiClient = ApiClient()
 
+    lateinit var updateManager: UpdateManager
+        private set
+
     var soundPool: SoundPool? = null
     var completionSoundId: Int = 0
 
@@ -29,6 +33,7 @@ class OpenCodeApp : Application() {
         super.onCreate()
         instance = this
         preferences = Preferences(this)
+        updateManager = UpdateManager(this)
 
         // Initialize SoundPool for completion sound
         val audioAttributes = AudioAttributes.Builder()

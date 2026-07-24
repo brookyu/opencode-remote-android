@@ -167,8 +167,9 @@ data class FileEntry(
 )
 
 @Serializable
-data class FileContent(
-    val content: String = ""
+data class FileContentResponse(
+    val type: String? = null,
+    val content: String? = null
 )
 
 @Serializable

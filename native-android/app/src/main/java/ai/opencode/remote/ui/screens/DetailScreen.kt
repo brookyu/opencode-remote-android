@@ -2,13 +2,17 @@ package ai.opencode.remote.ui.screens
 
 import ai.opencode.remote.R
 import ai.opencode.remote.data.models.*
-import ai.opencode.remote.extractMarkdownFilePaths
 import ai.opencode.remote.extractText
 import ai.opencode.remote.formatLimit
 import ai.opencode.remote.formatTime
 import ai.opencode.remote.normalizeMessageMarkdown
 import ai.opencode.remote.viewmodel.DetailUiState
 import ai.opencode.remote.viewmodel.SessionsUiState
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.UriHandler
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -19,6 +23,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -27,13 +33,14 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Send
@@ -49,6 +56,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import com.mikepenz.markdown.m3.Markdown
 import com.mikepenz.markdown.m3.markdownColor
@@ -58,8 +71,6 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.input.key.*
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -79,9 +90,8 @@ fun DetailScreen(
     onShowDetailsSheet: () -> Unit,
     onHideDetailsSheet: () -> Unit,
     onCommandOptionClick: (CommandInfo) -> Unit,
-    onOpenFile: (String) -> Unit,
-    onCloseFileViewer: () -> Unit,
-    onErrorDismiss: () -> Unit
+    onErrorDismiss: () -> Unit,
+    onOpenDocument: (filePath: String, sessionId: String?) -> Unit = { _, _ -> }
 ) {
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
@@ -94,7 +104,35 @@ fun DetailScreen(
         }
     }
 
+    val density = LocalDensity.current
+    val screenWidthPx = with(density) { LocalConfiguration.current.screenWidthDp.dp.toPx() }
+    val swipeOffset = remember { Animatable(0f) }
+
     Scaffold(
+        modifier = Modifier
+            .offset { IntOffset(swipeOffset.value.toInt(), 0) }
+            .pointerInput(Unit) {
+                detectHorizontalDragGestures(
+                    onDragStart = { },
+                    onDragEnd = {
+                        scope.launch {
+                            if (swipeOffset.value > screenWidthPx * 0.25f) {
+                                swipeOffset.animateTo(screenWidthPx, tween(200))
+                                onBack()
+                                swipeOffset.snapTo(0f)
+                            } else {
+                                swipeOffset.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow))
+                            }
+                        }
+                    },
+                    onHorizontalDrag = { _, dragAmount ->
+                        scope.launch {
+                            val nextOffset = maxOf(0f, swipeOffset.value + dragAmount)
+                            swipeOffset.snapTo(nextOffset)
+                        }
+                    }
+                )
+            },
         topBar = {
             TopAppBar(
                 title = {
@@ -227,44 +265,6 @@ fun DetailScreen(
                 ) { Text(err) }
             }
 
-            if (state.markdownFiles.isNotEmpty()) {
-                val filesScroll = rememberScrollState()
-                Row(
-                    modifier = Modifier
-                        .widthIn(max = 800.dp)
-                        .fillMaxWidth()
-                        .horizontalScroll(filesScroll)
-                        .padding(horizontal = 12.dp, vertical = 2.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        stringResource(R.string.files_title),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    state.markdownFiles.forEach { path ->
-                        AssistChip(
-                            onClick = { onOpenFile(path) },
-                            label = {
-                                Text(
-                                    path.substringAfterLast('/').substringAfterLast('\\'),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            },
-                            leadingIcon = {
-                                Icon(
-                                    Icons.Filled.Description,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            }
-                        )
-                    }
-                }
-            }
-
             if (state.todos.isNotEmpty()) {
                 Box(
                     modifier = Modifier
@@ -307,7 +307,9 @@ fun DetailScreen(
                             MessageBubble(
                                 role = msg.info.role,
                                 text = text,
-                                onOpenFile = onOpenFile
+                                onOpenDocument = { path ->
+                                    onOpenDocument(path, state.sessionId)
+                                }
                             )
                         }
                         if (state.showTypingBubble) {
@@ -334,16 +336,6 @@ fun DetailScreen(
         ModalBottomSheet(onDismissRequest = onHideDetailsSheet) {
             DetailsSheetContent(state = state)
         }
-    }
-
-    state.fileViewerPath?.let { path ->
-        FileViewerDialog(
-            path = path,
-            content = state.fileViewerContent,
-            loading = state.fileViewerLoading,
-            error = state.fileViewerError,
-            onClose = onCloseFileViewer
-        )
     }
 }
 
@@ -462,13 +454,13 @@ private fun TodoSection(
 }
 
 @Composable
-private fun MessageBubble(role: String, text: String, onOpenFile: (String) -> Unit) {
+private fun MessageBubble(role: String, text: String, onOpenDocument: (String) -> Unit = {}) {
     val isUser = role == "user"
     val bgColor = if (isUser) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
     val fgColor = if (isUser) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
     val alignment = if (isUser) Alignment.End else Alignment.Start
     val label = if (isUser) "You" else "OpenCode"
-    val artifacts = remember(text) { if (isUser) emptyList() else extractMarkdownFilePaths(text) }
+    val context = LocalContext.current
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -498,177 +490,92 @@ private fun MessageBubble(role: String, text: String, onOpenFile: (String) -> Un
                     color = fgColor
                 )
             } else {
-                AssistantMarkdown(
-                    text = text,
+                CompositionLocalProvider(LocalUriHandler provides object : UriHandler {
+                    override fun openUri(uri: String) {
+                        // Absolute HTTP/HTTPS URLs → open in browser
+                        if (uri.startsWith("http://") || uri.startsWith("https://")) {
+                            tryOpenUrl(uri)
+                            return
+                        }
+
+                        // Relative file paths (e.g. "docs/README.md") → open
+                        // in the built-in document viewer
+                        onOpenDocument(uri)
+                    }
+
+                    private fun tryOpenUrl(url: String): Boolean {
+                        return try {
+                            val parsed = Uri.parse(url)
+                            val intent = Intent(Intent.ACTION_VIEW, parsed).apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            context.startActivity(intent)
+                            true
+                        } catch (_: Exception) {
+                            false
+                        }
+                    }
+                }) {
+                    Markdown(
+                    content = text,
+                    colors = markdownColor(
+                        text = MaterialTheme.colorScheme.onSurfaceVariant,
+                        codeText = MaterialTheme.colorScheme.primary,
+                        inlineCodeText = MaterialTheme.colorScheme.tertiary,
+                        linkText = MaterialTheme.colorScheme.primary,
+                        codeBackground = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
+                        inlineCodeBackground = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
+                        dividerColor = MaterialTheme.colorScheme.outlineVariant
+                    ),
+                    typography = markdownTypography(
+                        text = MaterialTheme.typography.bodyMedium.copy(
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        ),
+                        h1 = MaterialTheme.typography.titleLarge.copy(
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        h2 = MaterialTheme.typography.titleMedium.copy(
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        h3 = MaterialTheme.typography.titleSmall.copy(
+                            color = MaterialTheme.colorScheme.tertiary,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        h4 = MaterialTheme.typography.bodyMedium.copy(
+                            color = MaterialTheme.colorScheme.tertiary,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        h5 = MaterialTheme.typography.bodyMedium.copy(
+                            color = MaterialTheme.colorScheme.tertiary,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        h6 = MaterialTheme.typography.bodySmall.copy(
+                            color = MaterialTheme.colorScheme.tertiary,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        code = MaterialTheme.typography.bodyMedium.copy(
+                            fontFamily = FontFamily.Monospace,
+                            color = MaterialTheme.colorScheme.primary
+                        ),
+                        inlineCode = MaterialTheme.typography.bodyMedium.copy(
+                            fontFamily = FontFamily.Monospace,
+                            color = MaterialTheme.colorScheme.tertiary
+                        ),
+                        quote = MaterialTheme.typography.bodyMedium.copy(
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                            fontStyle = FontStyle.Italic
+                        ),
+                        link = MaterialTheme.typography.bodyMedium.copy(
+                            color = MaterialTheme.colorScheme.primary,
+                            textDecoration = TextDecoration.Underline
+                        )
+                    ),
                     modifier = Modifier
                         .padding(horizontal = 12.dp, vertical = 10.dp)
                         .fillMaxWidth()
                 )
-            }
-        }
-        if (artifacts.isNotEmpty()) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth(0.85f)
-                    .widthIn(max = 640.dp)
-                    .horizontalScroll(rememberScrollState())
-                    .padding(top = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                artifacts.forEach { path ->
-                    AssistChip(
-                        onClick = { onOpenFile(path) },
-                        label = {
-                            Text(
-                                path.substringAfterLast('/').substringAfterLast('\\'),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                style = MaterialTheme.typography.labelMedium
-                            )
-                        },
-                        leadingIcon = {
-                            Icon(
-                                Icons.Filled.Description,
-                                contentDescription = null,
-                                modifier = Modifier.size(14.dp),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun AssistantMarkdown(text: String, modifier: Modifier = Modifier) {
-    Markdown(
-        content = text,
-        colors = markdownColor(
-            text = MaterialTheme.colorScheme.onSurfaceVariant,
-            codeText = MaterialTheme.colorScheme.primary,
-            inlineCodeText = MaterialTheme.colorScheme.tertiary,
-            linkText = MaterialTheme.colorScheme.primary,
-            codeBackground = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
-            inlineCodeBackground = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
-            dividerColor = MaterialTheme.colorScheme.outlineVariant
-        ),
-        typography = markdownTypography(
-            text = MaterialTheme.typography.bodyMedium.copy(
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            ),
-            h1 = MaterialTheme.typography.titleLarge.copy(
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Bold
-            ),
-            h2 = MaterialTheme.typography.titleMedium.copy(
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Bold
-            ),
-            h3 = MaterialTheme.typography.titleSmall.copy(
-                color = MaterialTheme.colorScheme.tertiary,
-                fontWeight = FontWeight.Bold
-            ),
-            h4 = MaterialTheme.typography.bodyMedium.copy(
-                color = MaterialTheme.colorScheme.tertiary,
-                fontWeight = FontWeight.Bold
-            ),
-            h5 = MaterialTheme.typography.bodyMedium.copy(
-                color = MaterialTheme.colorScheme.tertiary,
-                fontWeight = FontWeight.Bold
-            ),
-            h6 = MaterialTheme.typography.bodySmall.copy(
-                color = MaterialTheme.colorScheme.tertiary,
-                fontWeight = FontWeight.Bold
-            ),
-            code = MaterialTheme.typography.bodyMedium.copy(
-                fontFamily = FontFamily.Monospace,
-                color = MaterialTheme.colorScheme.primary
-            ),
-            inlineCode = MaterialTheme.typography.bodyMedium.copy(
-                fontFamily = FontFamily.Monospace,
-                color = MaterialTheme.colorScheme.tertiary
-            ),
-            quote = MaterialTheme.typography.bodyMedium.copy(
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                fontStyle = FontStyle.Italic
-            ),
-            link = MaterialTheme.typography.bodyMedium.copy(
-                color = MaterialTheme.colorScheme.primary,
-                textDecoration = TextDecoration.Underline
-            )
-        ),
-        modifier = modifier
-    )
-}
-
-@Composable
-private fun FileViewerDialog(
-    path: String,
-    content: String,
-    loading: Boolean,
-    error: String?,
-    onClose: () -> Unit
-) {
-    Dialog(
-        onDismissRequest = onClose,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.background
-        ) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 4.dp, vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(onClick = onClose) {
-                        Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.close))
-                    }
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            path.substringAfterLast('/').substringAfterLast('\\'),
-                            style = MaterialTheme.typography.titleMedium,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            path,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
-                HorizontalDivider()
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp)
-                ) {
-                    when {
-                        loading -> CircularProgressIndicator(
-                            modifier = Modifier.align(Alignment.Center)
-                        )
-                        error != null -> Text(
-                            stringResource(R.string.file_open_error) + ": " + error,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.align(Alignment.Center)
-                        )
-                        else -> AssistantMarkdown(
-                            text = content,
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .verticalScroll(rememberScrollState())
-                                .padding(vertical = 12.dp)
-                        )
-                    }
                 }
             }
         }
@@ -789,7 +696,16 @@ private fun ComposerBar(
                             unfocusedIndicatorColor = Color.Transparent,
                             disabledIndicatorColor = Color.Transparent
                         ),
-                        keyboardOptions = KeyboardOptions.Default
+                        keyboardOptions = KeyboardOptions.Default.copy(
+                            imeAction = ImeAction.Send
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onSend = {
+                                if (text.isNotBlank() && !isWorking) {
+                                    onSend()
+                                }
+                            }
+                        )
                     )
                     Spacer(Modifier.width(4.dp))
                     FloatingActionButton(

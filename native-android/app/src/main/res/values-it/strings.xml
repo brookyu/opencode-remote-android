@@ -138,6 +138,21 @@
     <string name="close">Chiudi</string>
     <string name="ok">OK</string>
     <string name="cancel">Annulla</string>
-    <string name="files_title">File</string>
-    <string name="file_open_error">Impossibile aprire il file</string>
+
+    <!-- Updates -->
+    <string name="settings_update_title">Aggiornamenti</string>
+    <string name="settings_update_current">Attuale: v%1$s (code %2$d)</string>
+    <string name="settings_update_check">Verifica aggiornamenti</string>
+    <string name="settings_update_checking">Verifica in corso…</string>
+    <string name="settings_update_available">Aggiornamento v%1$s disponibile</string>
+    <string name="settings_update_download">Scarica</string>
+    <string name="settings_update_downloading">Scaricamento…</string>
+    <string name="settings_update_ready">Scaricamento completato</string>
+    <string name="settings_update_up_to_date">Nessun aggiornamento</string>
+    <string name="settings_update_skip">Salta</string>
+    <string name="settings_update_skipped">Aggiornamento saltato</string>
+    <string name="settings_update_unskip">Annulla salto</string>
+    <string name="settings_update_error">Verifica aggiornamenti fallita</string>
+    <string name="settings_update_retry">Riprova</string>
+    <string name="settings_update_dismiss">Ignora</string>
 </resources>

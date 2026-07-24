@@ -50,6 +50,13 @@ interface OpenCodeApi {
         @Query("directory") directory: String? = null
     ): Session
 
+    @PATCH("session/{id}")
+    suspend fun updateSession(
+        @Path("id") sessionId: String,
+        @Body body: CreateSessionRequest,
+        @Query("directory") directory: String? = null
+    ): Session
+
     @DELETE("session/{id}")
     suspend fun deleteSession(
         @Path("id") sessionId: String,
@@ -102,10 +109,10 @@ interface OpenCodeApi {
     ): List<FileEntry>
 
     @GET("file/content")
-    suspend fun getFileContent(
+    suspend fun readFileContent(
         @Query("path") path: String,
         @Query("directory") directory: String? = null
-    ): FileContent
+    ): FileContentResponse
 
     @GET("project/current")
     suspend fun loadProjectCurrent(

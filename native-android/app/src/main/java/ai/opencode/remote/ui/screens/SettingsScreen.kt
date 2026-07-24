@@ -2,6 +2,7 @@ package ai.opencode.remote.ui.screens
 
 import ai.opencode.remote.Language
 import ai.opencode.remote.ThemePref
+import ai.opencode.remote.viewmodel.UpdateStatus
 import ai.opencode.remote.viewmodel.NoticeType
 import ai.opencode.remote.viewmodel.SettingsNotice
 import ai.opencode.remote.viewmodel.SettingsUiState
@@ -16,7 +17,11 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.CloudDownload
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.NewReleases
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Warning
@@ -48,8 +53,11 @@ fun SettingsScreen(
     onSave: () -> Unit,
     onTest: () -> Unit,
     onNoticeDismiss: () -> Unit,
-    onBack: () -> Unit
-) {
+    onBack: () -> Unit,
+    onCheckForUpdate: () -> Unit = {},
+    onDownloadUpdate: () -> Unit = {},
+    onSkipVersion: (Int) -> Unit = {},
+    onResetUpdate: () -> Unit = {}) {
     var showPassword by remember { mutableStateOf(false) }
     var portText by remember(state.draftConfig.port) {
         mutableStateOf(if (state.draftConfig.port > 0) state.draftConfig.port.toString() else "")
@@ -171,6 +179,180 @@ fun SettingsScreen(
                     HorizontalDivider()
                     LabeledField(label = stringResource(R.string.settings_theme)) {
                         ThemeSelector(state.theme, onThemeChange)
+                    }
+                }
+            }
+
+            // --- Update Card ---
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            Icons.Filled.CloudDownload,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = "Updates",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+
+                    Text(
+                        text = "Current: v${state.currentVersionName} (code ${state.currentVersionCode})",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    when (state.updateStatus) {
+                        UpdateStatus.Idle -> {
+                            Button(
+                                onClick = onCheckForUpdate,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Check for Updates")
+                            }
+                        }
+                        UpdateStatus.Checking -> {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    strokeWidth = 2.dp
+                                )
+                                Text(
+                                    "Checking for updates…",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                        }
+                        UpdateStatus.Available -> {
+                            val info = state.updateInfo
+                            if (info != null) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Filled.NewReleases,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.tertiary
+                                    )
+                                    Text(
+                                        text = "Update v${info.versionName} available",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.tertiary
+                                    )
+                                }
+                                if (info.releaseNotes.isNotBlank()) {
+                                    Text(
+                                        text = info.releaseNotes,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Button(
+                                        onClick = onDownloadUpdate,
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Icon(Icons.Filled.Download, contentDescription = null, modifier = Modifier.size(18.dp))
+                                        Spacer(Modifier.width(4.dp))
+                                        Text("Download")
+                                    }
+                                    OutlinedButton(
+                                        onClick = { onSkipVersion(info.versionCode) },
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Text("Skip")
+                                    }
+                                }
+                            }
+                        }
+                        UpdateStatus.Downloading -> {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    strokeWidth = 2.dp
+                                )
+                                Text(
+                                    "Downloading update…",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                        }
+                        UpdateStatus.ReadyToInstall -> {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    Icons.Filled.CheckCircle,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Text(
+                                    "Download complete — install via notification",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                        }
+                        UpdateStatus.Error -> {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    Icons.Filled.Error,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+                                Text(
+                                    "Update check failed",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                OutlinedButton(onClick = onCheckForUpdate) {
+                                    Text("Retry")
+                                }
+                                TextButton(onClick = onResetUpdate) {
+                                    Text("Dismiss")
+                                }
+                            }
+                        }
+                        UpdateStatus.Skipped -> {
+                            Text(
+                                "Update skipped — check again later for newer versions",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            OutlinedButton(onClick = onResetUpdate) {
+                                Text("Unskip")
+                            }
+                        }
                     }
                 }
             }

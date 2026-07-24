@@ -138,6 +138,21 @@
     <string name="close">關閉</string>
     <string name="ok">確定</string>
     <string name="cancel">取消</string>
-    <string name="files_title">檔案</string>
-    <string name="file_open_error">無法開啟檔案</string>
+
+    <!-- Updates -->
+    <string name="settings_update_title">更新</string>
+    <string name="settings_update_current">目前版本：v%1$s（代碼 %2$d）</string>
+    <string name="settings_update_check">檢查更新</string>
+    <string name="settings_update_checking">檢查中…</string>
+    <string name="settings_update_available">更新 v%1$s 可用</string>
+    <string name="settings_update_download">下載</string>
+    <string name="settings_update_downloading">下載中…</string>
+    <string name="settings_update_ready">下載完成</string>
+    <string name="settings_update_up_to_date">已是最新版本</string>
+    <string name="settings_update_skip">略過</string>
+    <string name="settings_update_skipped">已略過此版本</string>
+    <string name="settings_update_unskip">取消略過</string>
+    <string name="settings_update_error">更新檢查失敗</string>
+    <string name="settings_update_retry">重試</string>
+    <string name="settings_update_dismiss">關閉</string>
 </resources>

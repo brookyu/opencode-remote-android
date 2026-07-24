@@ -125,8 +125,9 @@ export type FileEntry = {
   ignored?: boolean
 }
 
-export type FileContent = {
-  content: string
+export type FileContentResponse = {
+  type?: string
+  content?: string
 }
 
 export type PathInfo = {

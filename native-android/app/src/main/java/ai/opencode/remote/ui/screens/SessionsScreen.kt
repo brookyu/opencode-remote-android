@@ -1,6 +1,9 @@
 package ai.opencode.remote.ui.screens
 
 import ai.opencode.remote.viewmodel.*
+import kotlinx.coroutines.launch
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -17,6 +20,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
@@ -29,6 +34,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.tween
 import ai.opencode.remote.R
 import ai.opencode.remote.formatTime
 import ai.opencode.remote.parentDirectory
@@ -45,6 +57,7 @@ fun SessionsScreen(
     onNewSession: () -> Unit,
     onSessionClick: (SessionView) -> Unit,
     onDeleteSession: (SessionView) -> Unit,
+    onToggleProjectCollapsed: (String) -> Unit,
     onConfirmDelete: () -> Unit,
     onCancelDelete: () -> Unit,
     onPickerBrowse: (String) -> Unit,
@@ -54,9 +67,39 @@ fun SessionsScreen(
     onCommandFilterChange: (String) -> Unit,
     onErrorDismiss: () -> Unit,
     onHelpClick: () -> Unit,
-    onSettingsClick: () -> Unit
+    onSettingsClick: () -> Unit,
+    onSwipeLeft: () -> Unit
 ) {
+    val density = LocalDensity.current
+    val screenWidthPx = with(density) { LocalConfiguration.current.screenWidthDp.dp.toPx() }
+    val swipeOffset = remember { Animatable(0f) }
+    val scope = rememberCoroutineScope()
+
     Scaffold(
+        modifier = Modifier
+            .offset { IntOffset(swipeOffset.value.toInt(), 0) }
+            .pointerInput(Unit) {
+                detectHorizontalDragGestures(
+                    onDragStart = { },
+                    onDragEnd = {
+                        scope.launch {
+                            if (swipeOffset.value < -screenWidthPx * 0.25f) {
+                                swipeOffset.animateTo(-screenWidthPx, tween(200))
+                                onSwipeLeft()
+                                swipeOffset.snapTo(0f)
+                            } else {
+                                swipeOffset.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow))
+                            }
+                        }
+                    },
+                    onHorizontalDrag = { _, dragAmount ->
+                        scope.launch {
+                            val nextOffset = minOf(0f, swipeOffset.value + dragAmount)
+                            swipeOffset.snapTo(nextOffset)
+                        }
+                    }
+                )
+            },
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = onNewSession,
@@ -158,7 +201,11 @@ fun SessionsScreen(
                 )
             )
 
-            if (state.filteredSessions.isEmpty() && !state.isRefreshing) {
+            val groupedSessions = remember(state.filteredSessions) {
+                state.filteredSessions.groupBy { it.directory }
+            }
+
+            if (groupedSessions.isEmpty() && !state.isRefreshing) {
                 EmptyState()
             } else {
                 LazyColumn(
@@ -166,12 +213,33 @@ fun SessionsScreen(
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(state.filteredSessions, key = { it.id }) { session ->
-                        SessionCard(
-                            session = session,
-                            onClick = { onSessionClick(session) },
-                            onDelete = { onDeleteSession(session) }
-                        )
+                    groupedSessions.forEach { (directory, sessionsInProj) ->
+                        val projectName = directory.substringAfterLast('/').ifBlank { "Global" }
+                        val isCollapsed = state.collapsedProjects.contains(directory)
+                        
+                        item(key = "dir-$directory") {
+                            FolderHeader(
+                                name = projectName,
+                                path = directory,
+                                isCollapsed = isCollapsed,
+                                sessionCount = sessionsInProj.size,
+                                onClick = { onToggleProjectCollapsed(directory) }
+                            )
+                        }
+                        
+                        if (!isCollapsed) {
+                            items(sessionsInProj, key = { it.id }) { session ->
+                                Box(
+                                    modifier = Modifier.padding(start = 16.dp)
+                                ) {
+                                    SessionCard(
+                                        session = session,
+                                        onClick = { onSessionClick(session) },
+                                        onDelete = { onDeleteSession(session) }
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -547,5 +615,72 @@ private fun FolderRow(name: String, onClick: () -> Unit) {
         )
         Spacer(Modifier.width(8.dp))
         Text(name, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+@Composable
+private fun FolderHeader(
+    name: String,
+    path: String,
+    isCollapsed: Boolean,
+    sessionCount: Int,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Folder,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                if (path.isNotBlank()) {
+                    Text(
+                        text = path,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            SuggestionChip(
+                onClick = onClick,
+                label = { Text(sessionCount.toString()) },
+                colors = SuggestionChipDefaults.suggestionChipColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    labelColor = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Icon(
+                imageVector = if (isCollapsed) Icons.Filled.ExpandMore else Icons.Filled.ArrowDropDown,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(24.dp)
+            )
+        }
     }
 }

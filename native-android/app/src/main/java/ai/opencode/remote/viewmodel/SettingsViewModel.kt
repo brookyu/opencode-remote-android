@@ -4,8 +4,11 @@ import ai.opencode.remote.I18n
 import ai.opencode.remote.Language
 import ai.opencode.remote.OpenCodeApp
 import ai.opencode.remote.ThemePref
+import ai.opencode.remote.BuildConfig
+import ai.opencode.remote.data.models.UpdateInfo
 import ai.opencode.remote.data.models.HealthResponse
 import ai.opencode.remote.data.models.ServerConfig
+import ai.opencode.remote.data.update.UpdateResult
 import ai.opencode.remote.store.Preferences
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -26,7 +29,9 @@ data class SettingsUiState(
     val isSaving: Boolean = false,
     val connectedVersion: String = "",
     val notice: SettingsNotice? = null,
-    val lastTestedConfigKey: String? = null
+    val lastTestedConfigKey: String? = null,
+    val updateStatus: UpdateStatus = UpdateStatus.Idle,
+    val updateInfo: UpdateInfo? = null
 ) {
     val hasDraftChanges: Boolean
         get() = configKey(draftConfig) != configKey(savedConfig) ||
@@ -40,6 +45,17 @@ data class SettingsUiState(
 
     val hasConfiguredServer: Boolean
         get() = savedConfig.host.isNotBlank() && savedConfig.port > 0
+
+    val currentVersionName: String
+        get() = BuildConfig.VERSION_NAME
+
+    val currentVersionCode: Int
+        get() = BuildConfig.VERSION_CODE
+}
+
+/** State of the update check / download flow. */
+enum class UpdateStatus {
+    Idle, Checking, Available, Downloading, ReadyToInstall, Error, Skipped
 }
 
 data class SettingsNotice(
@@ -164,5 +180,67 @@ class SettingsViewModel(
 
     fun clearNotice() {
         _uiState.value = _uiState.value.copy(notice = null)
+    }
+
+    // --- Update actions ---
+
+    fun checkForUpdate() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(updateStatus = UpdateStatus.Checking)
+            val updateUrl = app.preferences.updateUrl.first()
+            app.preferences.saveLastUpdateCheck(System.currentTimeMillis())
+            val result = app.updateManager.checkForUpdate(updateUrl)
+            when (result) {
+                is UpdateResult.Available -> {
+                    val skipped = app.preferences.skippedVersion.first()
+                    if (result.info.versionCode == skipped) {
+                        _uiState.value = _uiState.value.copy(
+                            updateStatus = UpdateStatus.Skipped,
+                            updateInfo = result.info
+                        )
+                    } else {
+                        _uiState.value = _uiState.value.copy(
+                            updateStatus = UpdateStatus.Available,
+                            updateInfo = result.info
+                        )
+                    }
+                }
+                is UpdateResult.NotAvailable -> {
+                    _uiState.value = _uiState.value.copy(
+                        updateStatus = UpdateStatus.Idle,
+                        updateInfo = null
+                    )
+                }
+                is UpdateResult.Error -> {
+                    _uiState.value = _uiState.value.copy(
+                        updateStatus = UpdateStatus.Error,
+                        updateInfo = null,
+                        notice = SettingsNotice(NoticeType.ERROR, "Update check failed: ${result.message}")
+                    )
+                }
+            }
+        }
+    }
+
+    fun startDownload(info: UpdateInfo) {
+        _uiState.value = _uiState.value.copy(updateStatus = UpdateStatus.Downloading)
+        app.updateManager.downloadUpdate(info)
+    }
+
+    fun skipVersion(versionCode: Int) {
+        viewModelScope.launch {
+            app.preferences.saveSkippedVersion(versionCode)
+            _uiState.value = _uiState.value.copy(
+                updateStatus = UpdateStatus.Idle,
+                updateInfo = null
+            )
+        }
+    }
+
+    fun resetUpdateStatus() {
+        _uiState.value = _uiState.value.copy(
+            updateStatus = UpdateStatus.Idle,
+            updateInfo = null
+        )
     }
 }

@@ -6,6 +6,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
@@ -26,6 +27,10 @@ class Preferences(private val context: Context) {
         private val KEY_AGENT = stringPreferencesKey("selected_agent_id")
         private val KEY_NEW_SESSION_DIR = stringPreferencesKey("new_session_directory")
         private val KEY_WORKING_ROOT_DIR = stringPreferencesKey("working_root_directory")
+        private val KEY_UPDATE_URL = stringPreferencesKey("update_url")
+        private val KEY_LAST_UPDATE_CHECK = longPreferencesKey("last_update_check")
+        private val KEY_SKIPPED_VERSION = intPreferencesKey("skipped_version")
+        private val KEY_DOWNLOAD_ID = longPreferencesKey("download_id")
     }
 
     val serverConfig: Flow<ServerConfig> = context.dataStore.data.map { prefs ->
@@ -83,5 +88,33 @@ class Preferences(private val context: Context) {
 
     suspend fun saveWorkingRootDirectory(dir: String) {
         context.dataStore.edit { it[KEY_WORKING_ROOT_DIR] = dir }
+    }
+
+    // --- Update preferences ---
+
+    val updateUrl: Flow<String> = context.dataStore.data.map {
+        it[KEY_UPDATE_URL] ?: ai.opencode.remote.data.update.UpdateManager.DEFAULT_UPDATE_URL
+    }
+
+    suspend fun saveUpdateUrl(url: String) {
+        context.dataStore.edit { it[KEY_UPDATE_URL] = url }
+    }
+
+    val lastUpdateCheck: Flow<Long> = context.dataStore.data.map { it[KEY_LAST_UPDATE_CHECK] ?: 0L }
+
+    suspend fun saveLastUpdateCheck(timestamp: Long) {
+        context.dataStore.edit { it[KEY_LAST_UPDATE_CHECK] = timestamp }
+    }
+
+    val skippedVersion: Flow<Int> = context.dataStore.data.map { it[KEY_SKIPPED_VERSION] ?: -1 }
+
+    suspend fun saveSkippedVersion(versionCode: Int) {
+        context.dataStore.edit { it[KEY_SKIPPED_VERSION] = versionCode }
+    }
+
+    val downloadId: Flow<Long> = context.dataStore.data.map { it[KEY_DOWNLOAD_ID] ?: -1L }
+
+    suspend fun saveDownloadId(id: Long) {
+        context.dataStore.edit { it[KEY_DOWNLOAD_ID] = id }
     }
 }

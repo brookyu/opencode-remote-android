@@ -3,9 +3,9 @@ import type {
   AgentOption,
   CommandInfo,
   DiffFile,
-  FileContent,
   FileStatusEntry,
   FileEntry,
+  FileContentResponse,
   HealthResponse,
   MessageEnvelope,
   ModelOption,
@@ -241,8 +241,8 @@ export const api = {
     return request<FileEntry[]>(config, withDirectory(`/file?path=${encodeURIComponent(path)}`, directory))
   },
 
-  getFileContent(config: ServerConfig, path: string, directory?: string) {
-    return request<FileContent>(config, withDirectory(`/file/content?path=${encodeURIComponent(path)}`, directory))
+  readFileContent(config: ServerConfig, path: string, directory?: string) {
+    return request<FileContentResponse>(config, withDirectory(`/file/content?path=${encodeURIComponent(path)}`, directory))
   },
 
   listCommands(config: ServerConfig) {

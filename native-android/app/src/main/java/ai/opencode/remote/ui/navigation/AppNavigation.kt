@@ -4,7 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import ai.opencode.remote.OpenCodeApp
 import ai.opencode.remote.data.models.ModelSelection
+import ai.opencode.remote.data.models.ServerConfig
 import ai.opencode.remote.ui.screens.DetailScreen
+import ai.opencode.remote.ui.screens.DocumentViewerScreen
 import ai.opencode.remote.ui.screens.HelpScreen
 import ai.opencode.remote.ui.screens.SessionsScreen
 import ai.opencode.remote.ui.screens.SettingsScreen
@@ -29,14 +31,21 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 enum class Tab(val label: String, val icon: ImageVector) {
     Sessions("Sessions", Icons.Filled.ViewList),
@@ -54,6 +63,14 @@ fun AppNavigation() {
     }
     var selectedSessionStatus by remember { mutableStateOf("idle") }
     var selectedSessionUpdated by remember { mutableStateOf(0L) }
+
+    // Document viewer state
+    var docViewerFile by remember { mutableStateOf<String?>(null) }
+    var docViewerSessionId by remember { mutableStateOf<String?>(null) }
+    var docViewerContent by remember { mutableStateOf<String?>(null) }
+    var docViewerLoading by remember { mutableStateOf(false) }
+    var docViewerError by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
 
     val settingsViewModel: SettingsViewModel = viewModel(factory = SimpleViewModelFactory { SettingsViewModel(app) })
     val sessionsViewModel: SessionsViewModel = viewModel(factory = SimpleViewModelFactory { SessionsViewModel(app) })
@@ -77,10 +94,29 @@ fun AppNavigation() {
         }
     }
 
-    LaunchedEffect(hasServer, selectedTab) {
-        if (hasServer && selectedTab == Tab.Sessions) {
-            sessionsViewModel.startPolling()
-        } else {
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner, hasServer, selectedTab) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_START) {
+                if (hasServer && selectedTab == Tab.Sessions) {
+                    sessionsViewModel.startPolling()
+                }
+            } else if (event == Lifecycle.Event.ON_STOP) {
+                sessionsViewModel.stopPolling()
+            }
+        }
+
+        if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+            if (hasServer && selectedTab == Tab.Sessions) {
+                sessionsViewModel.startPolling()
+            } else {
+                sessionsViewModel.stopPolling()
+            }
+        }
+
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
             sessionsViewModel.stopPolling()
         }
     }
@@ -91,8 +127,8 @@ fun AppNavigation() {
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            when (selectedTab) {
-                Tab.Sessions -> SessionsScreen(
+            if (selectedTab == Tab.Sessions || selectedTab == Tab.Detail) {
+                SessionsScreen(
                     state = sessionsState,
                     onSearchQueryChange = sessionsViewModel::updateSearchQuery,
                     onRefresh = sessionsViewModel::refreshSessionsManually,
@@ -108,6 +144,7 @@ fun AppNavigation() {
                         selectedTab = Tab.Detail
                     },
                     onDeleteSession = sessionsViewModel::deleteSession,
+                    onToggleProjectCollapsed = sessionsViewModel::toggleProjectCollapsed,
                     onConfirmDelete = sessionsViewModel::confirmDeleteSession,
                     onCancelDelete = sessionsViewModel::cancelDeleteSession,
                     onPickerBrowse = sessionsViewModel::browseDirectory,
@@ -130,38 +167,73 @@ fun AppNavigation() {
                     onCommandFilterChange = sessionsViewModel::setCommandFilter,
                     onErrorDismiss = sessionsViewModel::clearError,
                     onHelpClick = { selectedTab = Tab.Help },
-                    onSettingsClick = { selectedTab = Tab.Settings }
-                )
-
-                Tab.Detail -> {
-                    val sessionInfo = selectedSession
-                    if (sessionInfo != null) {
-                        DetailScreen(
-                            state = detailState,
-                            onBack = {
-                                detailViewModel.closeSession()
-                                selectedTab = Tab.Sessions
-                            },
-                            onComposerChange = detailViewModel::updateComposer,
-                            onSend = detailViewModel::sendPrompt,
-                            onAbort = detailViewModel::abortSession,
-                            onModelKeyChange = detailViewModel::setModelKey,
-                            onAgentChange = detailViewModel::setAgentId,
-                            onModelQueryChange = detailViewModel::setModelQuery,
-                            onToggleTodos = detailViewModel::toggleTodos,
-                            onShowAiSheet = { detailViewModel.showAiSheet(true) },
-                            onHideAiSheet = { detailViewModel.showAiSheet(false) },
-                            onShowDetailsSheet = { detailViewModel.showDetailsSheet(true) },
-                            onHideDetailsSheet = { detailViewModel.showDetailsSheet(false) },
-                            onCommandOptionClick = detailViewModel::selectCommandOption,
-                            onOpenFile = detailViewModel::openFile,
-                            onCloseFileViewer = detailViewModel::closeFileViewer,
-                            onErrorDismiss = detailViewModel::clearError
-                        )
+                    onSettingsClick = { selectedTab = Tab.Settings },
+                    onSwipeLeft = {
+                        val session = sessionsState.sessions.firstOrNull()
+                        if (session != null) {
+                            selectedSession = Triple(session.id, session.title, session.directory)
+                            selectedSessionStatus = session.status
+                            selectedSessionUpdated = session.updated
+                            detailViewModel.openSession(
+                                session.id, session.title, session.directory,
+                                session.status, session.updated
+                            )
+                            selectedTab = Tab.Detail
+                        }
                     }
-                }
+                )
+            }
 
-                Tab.Settings -> SettingsScreen(
+            if (selectedTab == Tab.Detail) {
+                val sessionInfo = selectedSession
+                if (sessionInfo != null) {
+                    DetailScreen(
+                        state = detailState,
+                        onBack = {
+                            detailViewModel.closeSession()
+                            selectedTab = Tab.Sessions
+                        },
+                        onComposerChange = detailViewModel::updateComposer,
+                        onSend = detailViewModel::sendPrompt,
+                        onAbort = detailViewModel::abortSession,
+                        onModelKeyChange = detailViewModel::setModelKey,
+                        onAgentChange = detailViewModel::setAgentId,
+                        onModelQueryChange = detailViewModel::setModelQuery,
+                        onToggleTodos = detailViewModel::toggleTodos,
+                        onShowAiSheet = { detailViewModel.showAiSheet(true) },
+                        onHideAiSheet = { detailViewModel.showAiSheet(false) },
+                        onShowDetailsSheet = { detailViewModel.showDetailsSheet(true) },
+                        onHideDetailsSheet = { detailViewModel.showDetailsSheet(false) },
+                        onCommandOptionClick = detailViewModel::selectCommandOption,
+                        onErrorDismiss = detailViewModel::clearError,
+                        onOpenDocument = { filePath, sessionId ->
+                            scope.launch {
+                                docViewerFile = filePath
+                                docViewerSessionId = sessionId
+                                docViewerContent = null
+                                docViewerError = null
+                                docViewerLoading = true
+                                try {
+                                    val config = app.preferences.serverConfig.first()
+                                    val content = app.apiClient.readFileContent(
+                                        config, filePath,
+                                        detailState.sessionDirectory.ifBlank { null },
+                                        sessionId
+                                    )
+                                    docViewerContent = content
+                                    docViewerLoading = false
+                                } catch (e: Exception) {
+                                    docViewerError = e.message ?: "Failed to load file"
+                                    docViewerLoading = false
+                                }
+                            }
+                        }
+                    )
+                }
+            }
+
+            if (selectedTab == Tab.Settings) {
+                SettingsScreen(
                     state = settingsState,
                     onHostChange = settingsViewModel::updateDraftHost,
                     onPortChange = settingsViewModel::updateDraftPort,
@@ -173,14 +245,60 @@ fun AppNavigation() {
                     onSave = settingsViewModel::saveConfig,
                     onTest = settingsViewModel::testConnection,
                     onNoticeDismiss = settingsViewModel::clearNotice,
-                    onBack = { selectedTab = Tab.Sessions }
+                    onBack = { selectedTab = Tab.Sessions },
+                    onCheckForUpdate = settingsViewModel::checkForUpdate,
+                    onDownloadUpdate = {
+                        settingsState.updateInfo?.let { settingsViewModel.startDownload(it) }
+                    },
+                    onSkipVersion = { vc -> settingsViewModel.skipVersion(vc) },
+                    onResetUpdate = settingsViewModel::resetUpdateStatus
                 )
+            }
 
-                Tab.Help -> HelpScreen(
+            if (selectedTab == Tab.Help) {
+                HelpScreen(
                     state = sessionsState,
                     onCommandFilterChange = sessionsViewModel::setCommandFilter,
                     onCommandSearchChange = sessionsViewModel::setCommandSearch,
                     onBack = { selectedTab = Tab.Sessions }
+                )
+            }
+
+            // Document viewer overlay
+            docViewerFile?.let { filePath ->
+                DocumentViewerScreen(
+                    filePath = filePath,
+                    fileContent = docViewerContent ?: "",
+                    isLoading = docViewerLoading,
+                    error = docViewerError,
+                    onBack = {
+                        docViewerFile = null
+                        docViewerSessionId = null
+                        docViewerContent = null
+                        docViewerError = null
+                        docViewerLoading = false
+                    },
+                    onRetry = {
+                        scope.launch {
+                            docViewerContent = null
+                            docViewerError = null
+                            docViewerLoading = true
+                            try {
+                                val config = app.preferences.serverConfig.first()
+                                val content = app.apiClient.readFileContent(
+                                    config,
+                                    docViewerFile ?: return@launch,
+                                    detailState.sessionDirectory.ifBlank { null },
+                                    docViewerSessionId
+                                )
+                                docViewerContent = content
+                                docViewerLoading = false
+                            } catch (e: Exception) {
+                                docViewerError = e.message ?: "Failed to load file"
+                                docViewerLoading = false
+                            }
+                        }
+                    }
                 )
             }
         }
